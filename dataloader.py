@@ -20,3 +20,7 @@ class CustomDataset(Dataset):
 
     def __len__(self):
         return len(self.dataset)
+
+    def num_classes(self):
+        # Return the number of unique labels in the dataset
+        return len(self.dataset.classes)
