@@ -13,3 +13,6 @@ pip3 install --upgrade pip setuptools
 pip3 install opencv-contrib-python==4.1.2.30 opencv-python==4.1.2.30 scikit-learn
 pip3 install torch torchvision torchaudio
 pip3 install tqdm
+
+chmod 777 train.sh
+# TODO add train.sh to crontab
