@@ -71,7 +71,8 @@ def train_validate_model(model, train_loader, val_loader, optimizer, criterion, 
             epoch_f1 = sum(f1) / len(f1)
             epoch_acc = sum(acc) / len(acc)
 
-            scores[phase].append({'loss': epoch_loss, 'f1': epoch_f1, 'accuracy': epoch_acc})
+            scores[phase].append({'epoch': epoch, 'loss': epoch_loss, 'f1': epoch_f1, 'accuracy': epoch_acc})
+            print(phase, scores[phase][-1])
 
             if phase == 'val' and epoch_f1 > best_f1:
                 best_f1 = epoch_f1
@@ -103,7 +104,9 @@ def test_model(model, test_loader, criterion, device):
     test_f1 = sum(f1) / len(f1)
     test_acc = sum(acc) / len(acc)
 
-    return {'loss': test_loss, 'f1': test_f1, 'accuracy': test_acc}
+    test_scores = {'loss': test_loss, 'f1': test_f1, 'accuracy': test_acc}
+    print('test', test_scores)
+    return test_scores
 
 
 def main():
@@ -132,10 +135,10 @@ def main():
     scores['test'] = test_scores
 
     with open('scores.json', 'w') as f:
-        json.dump(scores, f)
+        json.dump(scores, f, indent=4)
 
     with open('args.json', 'w') as f:
-        json.dump(vars(args), f)
+        json.dump(vars(args), f, indent=4)
 
 
 if __name__ == '__main__':
