@@ -24,3 +24,7 @@ class CustomDataset(Dataset):
     def num_classes(self):
         # Return the number of unique labels in the dataset
         return len(self.dataset.classes)
+
+    def get_classes(self):
+        # Return the number of unique labels in the dataset
+        return self.dataset.classes
