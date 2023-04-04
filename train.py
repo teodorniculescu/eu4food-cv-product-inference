@@ -80,11 +80,13 @@ def train_validate_model(model, train_loader, val_loader, optimizer, criterion, 
             if phase == 'val' and epoch_f1 > best_f1:
                 best_f1 = epoch_f1
                 torch.save(model.state_dict(), model_save_path)
+                print('saved model')
 
     return scores
 
 
-def test_model(model, test_loader, criterion, device):
+def test_model(model, best_model_save_path, test_loader, criterion, device):
+    model.load_state_dict(torch.load(best_model_save_path))
     model.eval()
 
     running_loss = 0.0
@@ -141,7 +143,7 @@ def main():
     model_save_path = os.path.join(args.save_path, args.model_name)
 
     scores = train_validate_model(model, train_loader, val_loader, optimizer, criterion, args.device, args.num_epochs, model_save_path)
-    test_scores = test_model(model, test_loader, criterion, args.device)
+    test_scores = test_model(model, model_save_path, test_loader, criterion, args.device)
 
     scores['test'] = test_scores
 
