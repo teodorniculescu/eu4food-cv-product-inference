@@ -1,1 +1,1 @@
-from testmodel import TestModel
+from .testmodel import TestModel

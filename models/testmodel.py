@@ -1,6 +1,7 @@
 import torch.nn as nn
+import torch
 
-class TestModel:
+class TestModel(nn.Module):
     def __init__(self, input_shape, num_classes):
         super(TestModel, self).__init__()
         self.input_shape = input_shape
@@ -14,18 +15,19 @@ class TestModel:
             nn.ReLU(),
             nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3),
             nn.BatchNorm2d(64),
-            nn.ReLU()
+            nn.ReLU(),
+            nn.Flatten()
         )
-        input_size = 64 * (input_shape[0] // 2**3) * (input_shape[1] // 2**3)
+
+        dummy_image = torch.zeros((1, 3, input_shape[0], input_shape[1]))
+        conv_layers_output = self.conv_layers(dummy_image)
+        input_size = conv_layers_output.size()[1]
+
         self.fc_layers = nn.Sequential(
             nn.Linear(input_size, num_classes)
-        )
-        self.fc_layers = nn.Sequential(
-            nn.Linear(64 * (input_shape[0] // 8) * (input_shape[1] // 8), num_classes)
         )
 
     def forward(self, x):
         x = self.conv_layers(x)
-        x = x.view(x.size(0), -1)
         x = self.fc_layers(x)
         return x
