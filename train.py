@@ -1,3 +1,4 @@
+from datetime import datetime
 from models import TestModel
 from dataloader import CustomDataset
 import argparse
@@ -19,10 +20,12 @@ def get_args():
     parser.add_argument('--learning_rate', type=float, default=0.001, help='Learning rate to use for training')
     parser.add_argument('--momentum', type=float, default=0.9, help='Momentum to use for optimizer')
     parser.add_argument('--num_epochs', type=int, default=10, help='Number of epochs to train for')
-    parser.add_argument('--save_path', type=str, default='model.pth', help='Path to save the trained model')
+    parser.add_argument('--model_name', type=str, default='best_model.pth', help='Name of the best model')
+    parser.add_argument('--save_path', type=str, default='train_results', help='Path to save the trained model')
     parser.add_argument('--image_size', type=int, nargs=2, default=[224, 224], help='Size of the input images as a tuple (height, width)')
     parser.add_argument('--batch_size', type=int, default=32, help='Batch size to use for training')
     parser.add_argument('--device', type=str, default='cpu', help='Device to use for training (cpu or cuda)')
+    parser.add_argument('--num_workers', type=int, default=0, help='Num workers for loading the dataset')
 
     # Parse the arguments and call the training function
     args = parser.parse_args()
@@ -32,7 +35,7 @@ def get_args():
     return args
 
 
-def train_validate_model(model, train_loader, val_loader, optimizer, criterion, device, num_epochs, save_path):
+def train_validate_model(model, train_loader, val_loader, optimizer, criterion, device, num_epochs, model_save_path):
     scores = {'train': [], 'val': []}
     best_f1 = 0
 
@@ -76,7 +79,7 @@ def train_validate_model(model, train_loader, val_loader, optimizer, criterion, 
 
             if phase == 'val' and epoch_f1 > best_f1:
                 best_f1 = epoch_f1
-                torch.save(model.state_dict(), save_path)
+                torch.save(model.state_dict(), model_save_path)
 
     return scores
 
@@ -108,9 +111,15 @@ def test_model(model, test_loader, criterion, device):
     print('test', test_scores)
     return test_scores
 
+def get_current_timestamp():
+    return datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
 
 def main():
     args = get_args()
+    args.timestamp = get_current_timestamp()
+    args.save_path = os.path.join(args.save_path, args.timestamp)
+
+    os.makedirs(os.path.join(args.save_path))
 
     dataset = CustomDataset(args.data_dir, image_size=args.image_size)
     args.num_classes = dataset.num_classes()
@@ -125,19 +134,23 @@ def main():
     test_size = len(dataset) - train_size - val_size
     train_dataset, val_dataset, test_dataset = random_split(dataset, [train_size, val_size, test_size])
 
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False)
+    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
+    val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
 
-    scores = train_validate_model(model, train_loader, val_loader, optimizer, criterion, args.device, args.num_epochs, args.save_path)
+    model_save_path = os.path.join(args.save_path, args.model_name)
+
+    scores = train_validate_model(model, train_loader, val_loader, optimizer, criterion, args.device, args.num_epochs, model_save_path)
     test_scores = test_model(model, test_loader, criterion, args.device)
 
     scores['test'] = test_scores
 
-    with open('scores.json', 'w') as f:
+    scores_save_path = os.path.join(args.save_path, 'scores.json')
+    with open(scores_save_path, 'w') as f:
         json.dump(scores, f, indent=4)
 
-    with open('args.json', 'w') as f:
+    args_save_path = os.path.join(args.save_path, 'args.json')
+    with open(args_save_path, 'w') as f:
         json.dump(vars(args), f, indent=4)
 
 
