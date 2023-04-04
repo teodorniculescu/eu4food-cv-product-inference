@@ -10,7 +10,9 @@ from torchvision import transforms
 from torchvision.datasets import ImageFolder
 from tqdm import tqdm
 import json
-from sklearn.metrics import f1_score, accuracy_score
+from sklearn.metrics import f1_score, accuracy_score, confusion_matrix
+import seaborn as sns
+import matplotlib.pyplot as plt
 import os
 
 def get_args():
@@ -85,13 +87,15 @@ def train_validate_model(model, train_loader, val_loader, optimizer, criterion, 
     return scores
 
 
-def test_model(model, best_model_save_path, test_loader, criterion, device):
+def test_model(model, best_model_save_path, test_loader, criterion, device, conf_matrix_save_path, class_labels):
     model.load_state_dict(torch.load(best_model_save_path))
     model.eval()
 
     running_loss = 0.0
     f1 = []
     acc = []
+    all_preds = []
+    all_labels = []
 
     with torch.no_grad():
         for images, labels in tqdm(test_loader, desc="Test"):
@@ -105,9 +109,19 @@ def test_model(model, best_model_save_path, test_loader, criterion, device):
             f1.append(f1_score(labels.cpu().numpy(), preds.cpu().numpy(), average='weighted'))
             acc.append(accuracy_score(labels.cpu().numpy(), preds.cpu().numpy()))
 
+            all_preds.extend(preds.cpu().numpy())
+            all_labels.extend(labels.cpu().numpy())
+
     test_loss = running_loss / len(test_loader.dataset)
     test_f1 = sum(f1) / len(f1)
     test_acc = sum(acc) / len(acc)
+
+    cm = confusion_matrix(all_labels, all_preds, labels=list(range(len(class_labels))))
+    plt.figure(figsize=(10, 10))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', cbar=False, xticklabels=class_labels, yticklabels=class_labels)
+    plt.xlabel('Predicted')
+    plt.ylabel('True')
+    plt.savefig(conf_matrix_save_path, bbox_inches='tight')
 
     test_scores = {'loss': test_loss, 'f1': test_f1, 'accuracy': test_acc}
     print('test', test_scores)
@@ -141,9 +155,10 @@ def main():
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
 
     model_save_path = os.path.join(args.save_path, args.model_name)
-
     scores = train_validate_model(model, train_loader, val_loader, optimizer, criterion, args.device, args.num_epochs, model_save_path)
-    test_scores = test_model(model, model_save_path, test_loader, criterion, args.device)
+
+    conf_matrix_save_path = os.path.join(args.save_path, 'confusion_matrix.png')
+    test_scores = test_model(model, model_save_path, test_loader, criterion, args.device, conf_matrix_save_path, args.classes)
 
     scores['test'] = test_scores
 
