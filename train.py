@@ -20,6 +20,7 @@ def get_args():
     parser.add_argument('data_dir', type=str, help='Path to the directory containing the dataset')
     parser.add_argument('--learning_rate', type=float, default=0.001, help='Learning rate to use for training')
     parser.add_argument('--momentum', type=float, default=0.9, help='Momentum to use for optimizer')
+    parser.add_argument('--weight_decay', type=float, default=0.0001, help='Weight decay to use for optimizer')
     parser.add_argument('--num_epochs', type=int, default=10, help='Number of epochs to train for')
     parser.add_argument('--model_name', type=str, default='best_model.pth', help='Name of the best model')
     parser.add_argument('--save_path', type=str, default='train_results', help='Path to save the trained model')
@@ -134,7 +135,41 @@ def test_model(model, best_model_save_path, test_loader, criterion, device, conf
     return test_scores
 
 def get_current_timestamp():
-    return datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+    return datetime.now().strftime('%Y_%m_%d_%H_%M_%S_%f')
+
+def draw_plot(scores, plot_save_path):
+    train_loss = [epoch['loss'] for epoch in scores['train']]
+    val_loss = [epoch['loss'] for epoch in scores['val']]
+    train_acc = [epoch['accuracy'] for epoch in scores['train']]
+    val_acc = [epoch['accuracy'] for epoch in scores['val']]
+    train_f1 = [epoch['f1'] for epoch in scores['train']]
+    val_f1 = [epoch['f1'] for epoch in scores['val']]
+
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(15, 15))
+
+    ax1.plot(train_loss, label='train')
+    ax1.plot(val_loss, label='val')
+    ax1.set_title('Loss')
+    ax1.set_xlabel('Epoch')
+    ax1.set_ylabel('Loss')
+    ax1.legend()
+
+    ax2.plot(train_acc, label='train')
+    ax2.plot(val_acc, label='val')
+    ax2.set_title('Accuracy')
+    ax2.set_xlabel('Epoch')
+    ax2.set_ylabel('Accuracy')
+    ax2.legend()
+
+    ax3.plot(train_f1, label='train')
+    ax3.plot(val_f1, label='val')
+    ax3.set_title('F1 score')
+    ax3.set_xlabel('Epoch')
+    ax3.set_ylabel('F1 score')
+    ax3.legend()
+
+    fig.savefig(plot_save_path)
+
 
 def main():
     args = get_args()
@@ -172,7 +207,7 @@ def main():
     model, optimizer_param = model_fetcher.get_model_and_optimizer_parameters()
     model.to(torch_device)
 
-    optimizer = optim.SGD(optimizer_param, lr=args.learning_rate, momentum=args.momentum)
+    optimizer = optim.SGD(optimizer_param, lr=args.learning_rate, momentum=args.momentum, weight_decay=args.weight_decay)
     criterion = nn.CrossEntropyLoss()
 
     model_save_path = os.path.join(args.save_path, args.model_name)
@@ -182,6 +217,9 @@ def main():
     test_scores = test_model(model, model_save_path, test_loader, criterion, torch_device, conf_matrix_save_path, classes)
 
     scores['test'] = test_scores
+
+    plot_save_path = os.path.join(args.save_path, 'train_plot.png')
+    draw_plot(scores, plot_save_path)
 
     scores_save_path = os.path.join(args.save_path, 'scores.json')
     with open(scores_save_path, 'w') as f:
