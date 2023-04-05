@@ -4,7 +4,7 @@ save_path=train_results
 
 DATASET_BUCKET_NAME=gs://eu4food-dataset
 MODEL_BUCKET_NAME=gs://eu4food-public
-DATASET_PATH=eu4food-dataset/Images
+DATASET_PATH=dataset
 ENV_NAME=eu4food_cv_product_inference_venv 
 
 model=resnet18
@@ -18,7 +18,8 @@ num_epochs=2
 num_workers=3
 
 # Download files from the bucket
-gsutil -m cp -r $DATASET_BUCKET_NAME .
+mkdir $DATASET_PATH
+gsutil -m cp -r $DATASET_BUCKET_NAME/100_products/* $DATASET_PATH
 
 # Check the exit status of the gsutil command
 if [ $? -eq 0 ]; then

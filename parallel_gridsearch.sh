@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ENV_NAME=eu4food_cv_product_inference_venv 
-DATASET_PATH=eu4food-dataset/Images
+DATASET_PATH=dataset
 source $ENV_NAME/bin/activate
 
 model=resnet18
