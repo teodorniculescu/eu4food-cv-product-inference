@@ -5,7 +5,6 @@ import argparse
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torchvision import transforms
 from torchvision.datasets import ImageFolder
 from tqdm import tqdm
 import json
@@ -31,7 +30,8 @@ def get_args():
     parser.add_argument('--norm_mean', type=float, nargs=3, default=[0.485, 0.456, 0.406], help='Mean used for normalizing the images')
     parser.add_argument('--norm_std', type=float, nargs=3, default=[0.229, 0.224, 0.225], help='Std used for normalizing the images')
     parser.add_argument('--show_class_count', action='store_true')
-    parser.add_argument('--imbalanced_dataset', action='store_true')
+    parser.add_argument('--balanced_dataset', action='store_true')
+    parser.add_argument('--augment', action='store_true')
 
     # Parse the arguments and call the training function
     args = parser.parse_args()
@@ -144,18 +144,25 @@ def main():
 
     os.makedirs(os.path.join(args.save_path))
 
-    if args.imbalanced_dataset:
-        dataset = CustomDataset(args.data_dir, image_size=args.image_size, mean=args.norm_mean, std=args.norm_std)
+    if args.augment:
+        print('Augment training data')
+
+    if args.balanced_dataset:
+        print('Using class balanced dataset')
+        dataset = CustomClassBalancedDataset(args.data_dir, image_size=args.image_size, mean=args.norm_mean, std=args.norm_std, augment=args.augment)
 
     else:
-        print('Using class balanced dataset')
-        dataset = CustomClassBalancedDataset(args.data_dir, image_size=args.image_size, mean=args.norm_mean, std=args.norm_std)
+        if self.augment:
+            print('WARNING: Augment not implemented for CustomDataset. No image will be augmented.')
+
+        dataset = CustomDataset(args.data_dir, image_size=args.image_size, mean=args.norm_mean, std=args.norm_std)
 
     train_loader, val_loader, test_loader = dataset.get_loaders(args.batch_size, args.num_workers)
     num_classes = dataset.num_classes()
     classes = dataset.get_classes()
 
     if args.show_class_count:
+        print('Generating class count for datasets')
         print('train dataset image count', get_loader_class_count(train_loader, num_classes))
         print('val dataset image count', get_loader_class_count(val_loader, num_classes))
         print('test dataset image count', get_loader_class_count(test_loader, num_classes))

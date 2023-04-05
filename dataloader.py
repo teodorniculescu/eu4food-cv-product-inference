@@ -78,13 +78,31 @@ class CustomImagePathDataset(Dataset):
         return image, label
 
 class CustomClassBalancedDataset(Dataset):
-    def __init__(self, root_dir, image_size=(32, 32), mean=(0.5, 0.5, 0.5),  std=(0.5, 0.5, 0.5), train_ratio=0.7, val_ratio=0.15, test_ratio=0.15):
+    def __init__(self, root_dir, image_size=(32, 32), mean=(0.5, 0.5, 0.5),  std=(0.5, 0.5, 0.5), train_ratio=0.7, val_ratio=0.15, test_ratio=0.15, augment=True):
         if train_ratio + val_ratio + test_ratio != 1.0:
             raise Exception("ERROR: Train, validation and test ratios must sum to 1.")
 
         self.image_size = image_size
         self.mean = mean
         self.std = std
+
+        if augment:
+            self.train_transform = transforms.Compose([
+                transforms.ToPILImage(),
+                transforms.RandAugment(),
+                transforms.Resize(image_size),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=mean, std=std)
+            ])
+
+        else:
+            self.train_transform = transforms.Compose([
+                transforms.ToPILImage(),
+                transforms.Resize(image_size),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=mean, std=std)
+            ])
+            
         self.transform = transforms.Compose([
             transforms.ToPILImage(),
             transforms.Resize(image_size),
@@ -116,7 +134,7 @@ class CustomClassBalancedDataset(Dataset):
             val_labels += [class_idx] * val_size
             test_labels += [class_idx] * test_size
 
-        self.train_dataset = CustomImagePathDataset(train_image_paths, train_labels, self.transform)
+        self.train_dataset = CustomImagePathDataset(train_image_paths, train_labels, self.train_transform)
         self.val_dataset = CustomImagePathDataset(val_image_paths, val_labels, self.transform)
         self.test_dataset = CustomImagePathDataset(test_image_paths, test_labels, self.transform)
 
