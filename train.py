@@ -12,6 +12,8 @@ from sklearn.metrics import f1_score, accuracy_score, confusion_matrix
 import seaborn as sns
 import matplotlib.pyplot as plt
 import os
+import time
+
 
 def get_args():
     # Set up the argparse object
@@ -210,11 +212,15 @@ def main():
     optimizer = optim.SGD(optimizer_param, lr=args.learning_rate, momentum=args.momentum, weight_decay=args.weight_decay)
     criterion = nn.CrossEntropyLoss()
 
+    start_time = time.time()
     model_save_path = os.path.join(save_path, args.model_name)
     scores = train_validate_model(model, train_loader, val_loader, optimizer, criterion, torch_device, args.num_epochs, model_save_path)
+    train_val_elapsed_time = time.time() - start_time
 
+    start_time = time.time()
     conf_matrix_save_path = os.path.join(save_path, 'confusion_matrix.png')
     test_scores = test_model(model, model_save_path, test_loader, criterion, torch_device, conf_matrix_save_path, classes)
+    test_elapsed_time = time.time() - start_time
 
     scores['test'] = test_scores
 
@@ -224,6 +230,11 @@ def main():
     scores_save_path = os.path.join(save_path, 'scores.json')
     with open(scores_save_path, 'w') as f:
         json.dump(scores, f, indent=4)
+
+    elapsed_time_save_path = os.path.join(save_path, 'elapsed_time.json')
+    with open(elapsed_time_save_path, 'w') as f:
+        elapsed_time = { 'train_val': train_val_elapsed_time, 'test': test_elapsed_time, }
+        json.dump(elapsed_time, f, indent=4)
 
     args_save_path = os.path.join(save_path, 'args.json')
     with open(args_save_path, 'w') as f:
