@@ -5,7 +5,6 @@ import argparse
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader, Dataset, random_split
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
 from tqdm import tqdm
@@ -28,11 +27,15 @@ def get_args():
     parser.add_argument('--batch_size', type=int, default=32, help='Batch size to use for training')
     parser.add_argument('--device', type=str, default='cpu', help='Device to use for training (cpu or cuda)')
     parser.add_argument('--num_workers', type=int, default=0, help='Num workers for loading the dataset')
+    parser.add_argument('--norm_mean', type=float, nargs=3, default=[0.485, 0.456, 0.406], help='Mean used for normalizing the images')
+    parser.add_argument('--norm_std', type=float, nargs=3, default=[0.229, 0.224, 0.225], help='Std used for normalizing the images')
 
     # Parse the arguments and call the training function
     args = parser.parse_args()
 
     args.image_size = tuple(args.image_size)
+    args.norm_mean = tuple(args.norm_mean)
+    args.norm_std = tuple(args.norm_std)
 
     return args
 
@@ -137,22 +140,14 @@ def main():
 
     os.makedirs(os.path.join(args.save_path))
 
-    dataset = CustomDataset(args.data_dir, image_size=args.image_size)
+    dataset = CustomDataset(args.data_dir, image_size=args.image_size, mean=args.norm_mean, std=args.norm_std)
+    train_loader, val_loader, test_loader = dataset.get_loaders(args.batch_size, args.num_workers)
     args.num_classes = dataset.num_classes()
     args.classes = dataset.get_classes()
 
     model = TestModel(args.image_size, args.num_classes).to(args.device)
     optimizer = optim.SGD(model.parameters(), lr=args.learning_rate, momentum=args.momentum)
     criterion = nn.CrossEntropyLoss()
-
-    train_size = int(0.7 * len(dataset))
-    val_size = int(0.15 * len(dataset))
-    test_size = len(dataset) - train_size - val_size
-    train_dataset, val_dataset, test_dataset = random_split(dataset, [train_size, val_size, test_size])
-
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
-    val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
-    test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
 
     model_save_path = os.path.join(args.save_path, args.model_name)
     scores = train_validate_model(model, train_loader, val_loader, optimizer, criterion, args.device, args.num_epochs, model_save_path)
