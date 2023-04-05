@@ -10,9 +10,6 @@ git clone https://github.com/teodorniculescu/eu4food-cv-product-inference.git
 
 ### 2. Go to the newly created folder and run the setup.sh script
 
-This will automatically install the required linux and python packages and configure the crontab file in order to 
-automatically run the train function.
-
 ```
 cd eu4food-cv-product-inference
 ./setup.sh
@@ -20,4 +17,8 @@ cd eu4food-cv-product-inference
 
 Note: Accept prompts regarding package installation if necessary.
 
+### 2. Train model and upload it to the bucket
 
+```
+./train.sh
+```
