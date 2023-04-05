@@ -1,13 +1,12 @@
 #!/bin/bash
 
-save_path=cpy_train_results
+save_path=train_results
 
 DATASET_BUCKET_NAME=gs://eu4food-dataset
 MODEL_BUCKET_NAME=gs://eu4food-public
 DATASET_PATH=eu4food-dataset/Images
 ENV_NAME=eu4food_cv_product_inference_venv 
 
-: << COMMENT
 model=resnet18
 batch_size=64
 learning_rate=0.01
@@ -52,8 +51,6 @@ fi
 
 # Remove downloaded dataset
 rm -rf $DATASET_PATH
-
-COMMENT
 
 most_recent_train=$save_path/$(ls -v1 $save_path | tail -n 1)
 if [ $? -eq 0 ]; then
@@ -104,7 +101,7 @@ else
 fi
 
 if [ $upload -eq 0 ]; then
-	gsutil -m cp -r $most_recent_train $MODEL_BUCKET_NAME
+	gsutil -m cp -r $most_recent_train $MODEL_BUCKET_NAME/best_model
 	if [ $? -eq 0 ]; then
 		echo "Successfuly uploaded new model"
 	else
@@ -112,3 +109,5 @@ if [ $upload -eq 0 ]; then
 		exit 1
 	fi
 fi
+
+exit 0
