@@ -4,6 +4,7 @@ ENV_NAME=eu4food_cv_product_inference_venv
 
 sudo apt update
 sudo apt -y install software-properties-common
+sudo apt -y install libxrender-dev libsm6 libxext6
 sudo apt -y jq
 sudo add-apt-repository ppa:deadsnakes/ppa
 sudo apt -y install python3.8 python3.8-venv
