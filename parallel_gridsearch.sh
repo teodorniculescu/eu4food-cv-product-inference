@@ -35,6 +35,8 @@ do
                 do
                         for momentum in 0.9 0.95 0.99
                         do
+				sleep 0.1
+
                                 # Determine which GPU to use based on the counter variable
                                 if [ $((counter % 2)) -eq 0 ]; then
                                         device=cuda:0
@@ -55,22 +57,25 @@ do
                                         --num_workers $num_workers \
                                         &
 
-				sleep 0.1
-
                                 pids+=($!)
                                 counter=$((counter + 1))
 
-                                # Wait until there are no more than parallel active processes
-                                while [ ${#pids[@]} -ge $parallel ]
-                                do
-                                        wait -n ${pids[*]}
-                                        pids=(${pids[@]/$?/})
-                                done
+				if [ ${#pids[@]} -eq 12 ]; then
+					for pid in ${pids[@]}; do
+						wait $pid
+					done
+					pids=()
+				fi
+
                         done
                 done
         done
 done
 
-# Wait for all the remaining background processes to complete
-wait ${pids[*]}
+if [ ${#pids[@]} -ne 0 ]; then
+	for pid in ${pids[@]}; do
+		wait $pid
+	done
+	pids=()
+fi
 
