@@ -13,6 +13,19 @@ parallel=12
 counter=0
 pids=()
 
+# Function to clean up child processes
+function cleanup() {
+        echo "Cleaning up child processes..."
+        for pid in "${pids[@]}"
+        do
+                kill "$pid"
+        done
+        exit
+}
+
+# Trap the SIGINT signal and call the cleanup function
+trap cleanup SIGINT
+
 # Loop over different values of batch size, learning rate, weight decay, and momentum
 for batch_size in 128 64 32
 do
