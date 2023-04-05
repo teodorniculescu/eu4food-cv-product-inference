@@ -1,6 +1,6 @@
 from datetime import datetime
 from models import TestModel
-from dataloader import CustomDataset
+from dataloader import CustomDataset, get_loader_class_count, CustomClassBalancedDataset
 import argparse
 import torch
 import torch.nn as nn
@@ -29,6 +29,8 @@ def get_args():
     parser.add_argument('--num_workers', type=int, default=0, help='Num workers for loading the dataset')
     parser.add_argument('--norm_mean', type=float, nargs=3, default=[0.485, 0.456, 0.406], help='Mean used for normalizing the images')
     parser.add_argument('--norm_std', type=float, nargs=3, default=[0.229, 0.224, 0.225], help='Std used for normalizing the images')
+    parser.add_argument('--show_class_count', action='store_true')
+    parser.add_argument('--imbalanced_dataset', action='store_true')
 
     # Parse the arguments and call the training function
     args = parser.parse_args()
@@ -140,10 +142,21 @@ def main():
 
     os.makedirs(os.path.join(args.save_path))
 
-    dataset = CustomDataset(args.data_dir, image_size=args.image_size, mean=args.norm_mean, std=args.norm_std)
+    if args.imbalanced_dataset:
+        dataset = CustomDataset(args.data_dir, image_size=args.image_size, mean=args.norm_mean, std=args.norm_std)
+
+    else:
+        print('Using class balanced dataset')
+        dataset = CustomClassBalancedDataset(args.data_dir, image_size=args.image_size, mean=args.norm_mean, std=args.norm_std)
+
     train_loader, val_loader, test_loader = dataset.get_loaders(args.batch_size, args.num_workers)
     args.num_classes = dataset.num_classes()
     args.classes = dataset.get_classes()
+
+    if args.show_class_count:
+        print('train dataset image count', get_loader_class_count(train_loader, args.num_classes))
+        print('val dataset image count', get_loader_class_count(val_loader, args.num_classes))
+        print('test dataset image count', get_loader_class_count(test_loader, args.num_classes))
 
     model = TestModel(args.image_size, args.num_classes).to(args.device)
     optimizer = optim.SGD(model.parameters(), lr=args.learning_rate, momentum=args.momentum)
