@@ -1,9 +1,12 @@
 #!/bin/bash
 
-model=resnet18
-num_epochs=4
-num_workers=4
+ENV_NAME=eu4food_cv_product_inference_venv 
+DATASET_PATH=eu4food-dataset/Images
+source $ENV_NAME/bin/activate
 
+model=resnet18
+num_epochs=100
+num_workers=3
 parallel=12
 
 # Initialize a counter variable and a process ID array
@@ -11,7 +14,7 @@ counter=0
 pids=()
 
 # Loop over different values of batch size, learning rate, weight decay, and momentum
-for batch_size in 32 64 128
+for batch_size in 128 64 32
 do
         for learning_rate in 0.001 0.01 0.1
         do
@@ -27,7 +30,7 @@ do
                                 fi
 
                                 # Run the Python script with the specified hyperparameters and GPU
-                                python train.py $model eu4food-dataset/Images/ \
+                                python train.py $model $DATASET_PATH \
                                         --balanced_dataset \
                                         --augment \
                                         --batch_size $batch_size \
@@ -38,6 +41,8 @@ do
                                         --num_epochs $num_epochs \
                                         --num_workers $num_workers \
                                         &
+
+				sleep 0.1
 
                                 pids+=($!)
                                 counter=$((counter + 1))
