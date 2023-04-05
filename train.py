@@ -145,7 +145,7 @@ def draw_plot(scores, plot_save_path):
     train_f1 = [epoch['f1'] for epoch in scores['train']]
     val_f1 = [epoch['f1'] for epoch in scores['val']]
 
-    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(15, 15))
+    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(15, 15))
 
     ax1.plot(train_loss, label='train')
     ax1.plot(val_loss, label='val')
@@ -174,10 +174,10 @@ def draw_plot(scores, plot_save_path):
 def main():
     args = get_args()
     args.timestamp = get_current_timestamp()
-    args.save_path = os.path.join(args.save_path, args.timestamp)
+    save_path = os.path.join(args.save_path, args.timestamp)
     torch_device = torch.device(args.device)
 
-    os.makedirs(os.path.join(args.save_path))
+    os.makedirs(os.path.join(save_path))
 
     if args.augment:
         print('Augment training data')
@@ -210,26 +210,26 @@ def main():
     optimizer = optim.SGD(optimizer_param, lr=args.learning_rate, momentum=args.momentum, weight_decay=args.weight_decay)
     criterion = nn.CrossEntropyLoss()
 
-    model_save_path = os.path.join(args.save_path, args.model_name)
+    model_save_path = os.path.join(save_path, args.model_name)
     scores = train_validate_model(model, train_loader, val_loader, optimizer, criterion, torch_device, args.num_epochs, model_save_path)
 
-    conf_matrix_save_path = os.path.join(args.save_path, 'confusion_matrix.png')
+    conf_matrix_save_path = os.path.join(save_path, 'confusion_matrix.png')
     test_scores = test_model(model, model_save_path, test_loader, criterion, torch_device, conf_matrix_save_path, classes)
 
     scores['test'] = test_scores
 
-    plot_save_path = os.path.join(args.save_path, 'train_plot.png')
+    plot_save_path = os.path.join(save_path, 'train_plot.png')
     draw_plot(scores, plot_save_path)
 
-    scores_save_path = os.path.join(args.save_path, 'scores.json')
+    scores_save_path = os.path.join(save_path, 'scores.json')
     with open(scores_save_path, 'w') as f:
         json.dump(scores, f, indent=4)
 
-    args_save_path = os.path.join(args.save_path, 'args.json')
+    args_save_path = os.path.join(save_path, 'args.json')
     with open(args_save_path, 'w') as f:
         json.dump(vars(args), f, indent=4)
 
-    obj_names_path = os.path.join(args.save_path, 'obj.names')
+    obj_names_path = os.path.join(save_path, 'obj.names')
     with open(obj_names_path, 'w') as f:
         for class_name in classes:
             f.write(class_name + '\n')
