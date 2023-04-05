@@ -1,1 +1,1 @@
-from .testmodel import TestModel
+from .finetune import ModelFetcher, AVAILABLE_MODELS 

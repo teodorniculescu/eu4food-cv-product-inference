@@ -1,5 +1,5 @@
 from datetime import datetime
-from models import TestModel
+from models import ModelFetcher, AVAILABLE_MODELS
 from dataloader import CustomDataset, get_loader_class_count, CustomClassBalancedDataset
 import argparse
 import torch
@@ -17,6 +17,7 @@ import os
 def get_args():
     # Set up the argparse object
     parser = argparse.ArgumentParser()
+    parser.add_argument('model', type=str, choices=AVAILABLE_MODELS, help='The type of the model used in the training process')
     parser.add_argument('data_dir', type=str, help='Path to the directory containing the dataset')
     parser.add_argument('--learning_rate', type=float, default=0.001, help='Learning rate to use for training')
     parser.add_argument('--momentum', type=float, default=0.9, help='Momentum to use for optimizer')
@@ -139,6 +140,7 @@ def main():
     args = get_args()
     args.timestamp = get_current_timestamp()
     args.save_path = os.path.join(args.save_path, args.timestamp)
+    torch_device = torch.device(args.device)
 
     os.makedirs(os.path.join(args.save_path))
 
@@ -150,23 +152,27 @@ def main():
         dataset = CustomClassBalancedDataset(args.data_dir, image_size=args.image_size, mean=args.norm_mean, std=args.norm_std)
 
     train_loader, val_loader, test_loader = dataset.get_loaders(args.batch_size, args.num_workers)
-    args.num_classes = dataset.num_classes()
-    args.classes = dataset.get_classes()
+    num_classes = dataset.num_classes()
+    classes = dataset.get_classes()
 
     if args.show_class_count:
-        print('train dataset image count', get_loader_class_count(train_loader, args.num_classes))
-        print('val dataset image count', get_loader_class_count(val_loader, args.num_classes))
-        print('test dataset image count', get_loader_class_count(test_loader, args.num_classes))
+        print('train dataset image count', get_loader_class_count(train_loader, num_classes))
+        print('val dataset image count', get_loader_class_count(val_loader, num_classes))
+        print('test dataset image count', get_loader_class_count(test_loader, num_classes))
 
-    model = TestModel(args.image_size, args.num_classes).to(args.device)
-    optimizer = optim.SGD(model.parameters(), lr=args.learning_rate, momentum=args.momentum)
+    model_fetcher = ModelFetcher(args.model, args.image_size, num_classes, torch_device)
+
+    model, optimizer_param = model_fetcher.get_model_and_optimizer_parameters()
+    model.to(torch_device)
+
+    optimizer = optim.SGD(optimizer_param, lr=args.learning_rate, momentum=args.momentum)
     criterion = nn.CrossEntropyLoss()
 
     model_save_path = os.path.join(args.save_path, args.model_name)
-    scores = train_validate_model(model, train_loader, val_loader, optimizer, criterion, args.device, args.num_epochs, model_save_path)
+    scores = train_validate_model(model, train_loader, val_loader, optimizer, criterion, torch_device, args.num_epochs, model_save_path)
 
     conf_matrix_save_path = os.path.join(args.save_path, 'confusion_matrix.png')
-    test_scores = test_model(model, model_save_path, test_loader, criterion, args.device, conf_matrix_save_path, args.classes)
+    test_scores = test_model(model, model_save_path, test_loader, criterion, torch_device, conf_matrix_save_path, classes)
 
     scores['test'] = test_scores
 
@@ -178,6 +184,10 @@ def main():
     with open(args_save_path, 'w') as f:
         json.dump(vars(args), f, indent=4)
 
+    obj_names_path = os.path.join(args.save_path, 'obj.names')
+    with open(obj_names_path, 'w') as f:
+        for class_name in classes:
+            f.write(class_name + '\n')
 
 if __name__ == '__main__':
     main()
