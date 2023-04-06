@@ -1,7 +1,7 @@
 import json
 import os
 
-save_path = 'cpy_train_results'
+save_path = 'train_results'
 
 results_list = []
 

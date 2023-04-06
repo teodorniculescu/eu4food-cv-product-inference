@@ -1,0 +1,31 @@
+{
+    "model": "resnet18",
+    "data_dir": "eu4food-dataset/Images",
+    "learning_rate": 0.1,
+    "momentum": 0.9,
+    "weight_decay": 0.01,
+    "num_epochs": 100,
+    "model_name": "best_model.pth",
+    "save_path": "train_results",
+    "image_size": [
+        224,
+        224
+    ],
+    "batch_size": 128,
+    "device": "cuda:0",
+    "num_workers": 3,
+    "norm_mean": [
+        0.485,
+        0.456,
+        0.406
+    ],
+    "norm_std": [
+        0.229,
+        0.224,
+        0.225
+    ],
+    "show_class_count": false,
+    "balanced_dataset": true,
+    "augment": true,
+    "timestamp": "2023_04_06_02_06_05_826323"
+}
