@@ -8,14 +8,13 @@ DATASET_PATH=dataset
 ENV_NAME=eu4food_cv_product_inference_venv 
 
 model=resnet18
-batch_size=64
-learning_rate=0.01
-weight_decay=1e-3
-momentum=0.95
+batch_size=128
+learning_rate=0.1
+weight_decay=1e-2
+momentum=0.9
 device=cpu
-#num_epochs=100
-num_epochs=2
-num_workers=3
+num_epochs=100
+num_workers=2
 
 # Download files from the bucket
 mkdir $DATASET_PATH
