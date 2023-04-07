@@ -1,3 +1,6 @@
+eu4food_cv_product_inference_venv
+dataset
+train_results
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
