@@ -12,13 +12,13 @@ batch_size=128
 learning_rate=0.1
 weight_decay=1e-2
 momentum=0.9
-device=cpu
-num_epochs=100
-num_workers=2
+device=cuda:0
+num_epochs=200
+num_workers=16
 
 # Download files from the bucket
 mkdir $DATASET_PATH
-gsutil -m cp -r $DATASET_BUCKET_NAME/100_products/* $DATASET_PATH
+gsutil -m cp -r $DATASET_BUCKET_NAME/20_products/* $DATASET_PATH
 
 # Check the exit status of the gsutil command
 if [ $? -eq 0 ]; then

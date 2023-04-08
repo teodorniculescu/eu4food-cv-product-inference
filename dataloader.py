@@ -5,6 +5,7 @@ from tqdm import tqdm
 import numpy as np
 import os
 import random
+from cutout_transform import CutoutNumpy
 import cv2
 
 class CustomDataset(Dataset):
@@ -59,7 +60,7 @@ def get_loader_class_count(loader, num_classes):
     return total_class_count
 
 class CustomImagePathDataset(Dataset):
-    def __init__(self, image_paths, labels, transform=None):
+    def __init__(self, image_paths, labels, transform):
         self.image_paths = image_paths
         self.labels = labels
         self.transform = transform
@@ -71,10 +72,7 @@ class CustomImagePathDataset(Dataset):
         image_path = self.image_paths[idx]
         label = self.labels[idx]
         image = cv2.imread(image_path)
-
-        if self.transform:
-            image = self.transform(image)
-
+        image = self.transform(image)
         return image, label
 
 class CustomClassBalancedDataset(Dataset):
@@ -87,9 +85,12 @@ class CustomClassBalancedDataset(Dataset):
         self.std = std
 
         if augment:
+            cutout_size = int(image_size[0] * 0.01)
+            print('augment with cutout size of', cutout_size)
             self.train_transform = transforms.Compose([
+                CutoutNumpy(cutout_percent=0.1, probability=1), 
                 transforms.ToPILImage(),
-                transforms.RandAugment(),
+                transforms.RandomRotation(degrees=15),
                 transforms.Resize(image_size),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=mean, std=std)
