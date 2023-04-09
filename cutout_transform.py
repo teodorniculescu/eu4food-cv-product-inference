@@ -43,27 +43,35 @@ if __name__ == '__main__':
     image_path = "dataset/C07_CocaCola_CocaCola/RO/IMG_3992.JPEG"
     image = cv2.imread(image_path)
 
+    """
     transform = transforms.Compose([
         CutoutNumpy(cutout_percent=0.1, probability=1), 
         transforms.ToPILImage(),
         transforms.Resize(image_size),
         transforms.ToTensor(),
     ])
+    """
+    for scale in [(0.7, 1)]:
+        transform = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.RandomResizedCrop(image_size, scale),
+            transforms.ToTensor(),
+        ])
 
-    vertical_list = []
-    for i in range(0, 10):
-        horizontal_list = []
-        for j in range(0, 10):
-            transformed_image = transform(image.copy()).numpy()
-            transformed_image = (transformed_image * 255).astype(np.uint8)
-            transformed_image = np.transpose(transformed_image, (1, 2, 0))
+        vertical_list = []
+        for i in range(0, 10):
+            horizontal_list = []
+            for j in range(0, 10):
+                transformed_image = transform(image.copy()).numpy()
+                transformed_image = (transformed_image * 255).astype(np.uint8)
+                transformed_image = np.transpose(transformed_image, (1, 2, 0))
 
-            horizontal_list.append(transformed_image)
+                horizontal_list.append(transformed_image)
 
-        concatenated_image = cv2.hconcat(horizontal_list)
-        vertical_list.append(concatenated_image)
+            concatenated_image = cv2.hconcat(horizontal_list)
+            vertical_list.append(concatenated_image)
 
-    result_image = cv2.vconcat(vertical_list)
-    cv2.imwrite('result_image.png', result_image)
+        result_image = cv2.vconcat(vertical_list)
+        cv2.imwrite(f'result_image_{scale}.png', result_image)
 
 

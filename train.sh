@@ -12,7 +12,7 @@ batch_size=128
 learning_rate=0.1
 weight_decay=1e-2
 momentum=0.9
-device=cuda:0
+device=cpu
 num_epochs=200
 num_workers=16
 

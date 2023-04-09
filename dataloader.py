@@ -88,10 +88,10 @@ class CustomClassBalancedDataset(Dataset):
             cutout_size = int(image_size[0] * 0.01)
             print('augment with cutout size of', cutout_size)
             self.train_transform = transforms.Compose([
-                CutoutNumpy(cutout_percent=0.1, probability=1), 
+                #CutoutNumpy(cutout_percent=0.08, probability=1), 
                 transforms.ToPILImage(),
                 transforms.RandomRotation(degrees=15),
-                transforms.Resize(image_size),
+                transforms.RandomResizedCrop(image_size, (0.7, 1.0)),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=mean, std=std)
             ])
