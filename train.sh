@@ -32,7 +32,6 @@ source $ENV_NAME/bin/activate
 python3.8 train.py $model $DATASET_PATH \
 	--save_path $save_path \
 	--balanced_dataset \
-	--augment \
 	--batch_size $batch_size \
 	--learning_rate $learning_rate \
 	--weight_decay $weight_decay \
