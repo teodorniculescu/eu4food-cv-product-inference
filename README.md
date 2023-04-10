@@ -2,13 +2,20 @@ Setup:
 
 # Product Inference for EU4Food Project
 ## Author: Teodor-Vicentiu Niculescu
-### 1. Clone repository:
+### 1. Set Google Cloud Credentials:
+
+```
+gcloud config set project eu4food
+gcloud init
+```
+
+### 2. Clone Repository:
 
 ```
 git clone https://github.com/teodorniculescu/eu4food-cv-product-inference.git
 ```
 
-### 2. Go to the newly created folder and run the setup.sh script
+### 3. Run setup.sh script
 
 ```
 cd eu4food-cv-product-inference
@@ -17,7 +24,7 @@ cd eu4food-cv-product-inference
 
 Note: Accept prompts regarding package installation if necessary.
 
-### 2. Train model and upload it to the bucket
+### 4. Train Model and Upload to Bucket
 
 ```
 ./train.sh
