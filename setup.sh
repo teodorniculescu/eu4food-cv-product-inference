@@ -18,5 +18,4 @@ pip3 install scikit-learn
 pip3 install seaborn
 pip3 install matplotlib
 pip3 install tqdm
-
-# TODO add train.sh to crontab
+pip3 install firebase firebase_admin
