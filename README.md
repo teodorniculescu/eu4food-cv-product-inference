@@ -19,7 +19,7 @@ git clone https://github.com/teodorniculescu/eu4food-cv-product-inference.git
 
 Upload json file which constains the firebase certificate to the newly cloned project and rename the file as firebase_certificate.json
 
-### 3. Run setup.sh script
+### 2. Run setup.sh script
 
 ```
 cd eu4food-cv-product-inference
@@ -28,7 +28,7 @@ cd eu4food-cv-product-inference
 
 Note: Accept prompts regarding package installation if necessary.
 
-### 4. Train Model and Upload to Bucket
+### 3. Train Model and Upload to Bucket
 
 ```
 ./train.sh
