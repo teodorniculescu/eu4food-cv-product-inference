@@ -88,7 +88,6 @@ class CustomClassBalancedDataset(Dataset):
             cutout_size = int(image_size[0] * 0.01)
             print('augment with cutout size of', cutout_size)
             self.train_transform = transforms.Compose([
-                #CutoutNumpy(cutout_percent=0.08, probability=1), 
                 transforms.ToPILImage(),
                 transforms.RandomRotation(degrees=15),
                 transforms.RandomResizedCrop(image_size, (0.7, 1.0)),
@@ -114,6 +113,22 @@ class CustomClassBalancedDataset(Dataset):
         self.classes = os.listdir(root_dir)
         self.classes.sort()
 
+        remove_classes = []
+        for class_name in self.classes:
+            image_paths = self.__get_image_paths__(os.path.join(root_dir, class_name))
+
+            data_size = len(image_paths)
+            train_size = int(train_ratio * data_size)
+            val_size = int(val_ratio * data_size)
+            test_size = data_size - train_size - val_size
+
+            if test_size == 0 or val_size == 0 or train_size == 0:
+                print(f'WARNING: Class {class_name} will not be used due to not enough images in acording to current split. Class has {data_size} images in total split as {train_size} {val_size} {test_size}')
+                remove_classes.append(class_name)
+
+        for class_name in remove_classes:
+            self.classes.remove(class_name)
+
         train_image_paths, val_image_paths, test_image_paths = [], [], []
         train_labels, val_labels, test_labels = [], [], []
         for class_idx, class_name in enumerate(self.classes):
@@ -124,8 +139,7 @@ class CustomClassBalancedDataset(Dataset):
             val_size = int(val_ratio * data_size)
             test_size = data_size - train_size - val_size
 
-            if test_size < 0:
-                print(f'WARNING: Class {class_name} will not have test test images due to the small size of the dataset of the split. Currently there are {train_size} train images and {val_size} val images out of {data_size} total images.')
+            print(f'Class {class_name} split {train_size} {val_size} {test_size}')
 
             train_image_paths += image_paths[:train_size]
             val_image_paths += image_paths[train_size:train_size + val_size]

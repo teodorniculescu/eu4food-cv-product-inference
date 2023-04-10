@@ -6,6 +6,7 @@ DATASET_BUCKET_NAME=gs://eu4food-dataset
 MODEL_BUCKET_NAME=gs://eu4food-public
 DATASET_PATH=dataset
 ENV_NAME=eu4food_cv_product_inference_venv 
+DOWNLOAD_AND_DELETE=true
 
 model=resnet18
 batch_size=128
@@ -13,12 +14,14 @@ learning_rate=0.1
 weight_decay=1e-2
 momentum=0.9
 device=cpu
-num_epochs=200
+num_epochs=1
 num_workers=16
 
-# Download files from the bucket
-mkdir $DATASET_PATH
-gsutil -m cp -r $DATASET_BUCKET_NAME/20_products/* $DATASET_PATH
+if [ "$DOWNLOAD_AND_DELETE" = true ]; then
+	echo "Download dataset"
+	mkdir $DATASET_PATH
+	gsutil -m cp -r $DATASET_BUCKET_NAME/20_products/* $DATASET_PATH
+fi
 
 # Check the exit status of the gsutil command
 if [ $? -eq 0 ]; then
@@ -48,8 +51,10 @@ else
 	exit 1
 fi
 
-# Remove downloaded dataset
-rm -rf $DATASET_PATH
+if [ "$DOWNLOAD_AND_DELETE" = true ]; then
+	echo "Remove dataset"
+	rm -rf $DATASET_PATH
+fi
 
 most_recent_train=$save_path/$(ls -v1 $save_path | tail -n 1)
 if [ $? -eq 0 ]; then
