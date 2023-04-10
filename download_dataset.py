@@ -29,10 +29,6 @@ def main(args):
         os.makedirs(product_path, exist_ok=True)
 
 
-
-
-    #none_capture = []
-
     nonexistent_mission_capture = []
     proposal_capture = []
     nocaptureid_mission_capture = []
