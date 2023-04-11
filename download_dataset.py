@@ -117,8 +117,8 @@ def main(args):
 
 def get_args():
     parser = argparse.ArgumentParser(description='Downloads images from firebase')
+    parser.add_argument('save_path', type=str)
     parser.add_argument('--firebase_certificate', type=str, default='firebase_certificate.json')
-    parser.add_argument('--save_path', type=str, default='dataset')
 
     args = parser.parse_args()
     

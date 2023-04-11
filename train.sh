@@ -6,7 +6,7 @@ DATASET_BUCKET_NAME=gs://eu4food-dataset
 MODEL_BUCKET_NAME=gs://eu4food-public
 DATASET_PATH=dataset
 ENV_NAME=eu4food_cv_product_inference_venv 
-DOWNLOAD_AND_DELETE=true
+DOWNLOAD_AND_DELETE=false
 
 model=resnet18
 batch_size=128
@@ -17,10 +17,13 @@ device=cpu
 num_epochs=1
 num_workers=16
 
+source $ENV_NAME/bin/activate
+
 if [ "$DOWNLOAD_AND_DELETE" = true ]; then
 	echo "Download dataset"
 	mkdir $DATASET_PATH
-	gsutil -m cp -r $DATASET_BUCKET_NAME/20_products/* $DATASET_PATH
+	#gsutil -m cp -r $DATASET_BUCKET_NAME/20_products/* $DATASET_PATH
+	python download_dataset.py $DATASET_PATH
 fi
 
 # Check the exit status of the gsutil command
@@ -31,7 +34,6 @@ else
 	exit 1
 fi
 
-source $ENV_NAME/bin/activate
 python3.8 train.py $model $DATASET_PATH \
 	--save_path $save_path \
 	--balanced_dataset \
