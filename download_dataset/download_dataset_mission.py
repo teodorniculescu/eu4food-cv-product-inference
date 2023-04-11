@@ -17,7 +17,6 @@ def main(args):
     db = firestore.client()
 
     keymap_pi_to_pn = {}
-    keymap_rpid_to_pi = {} 
     for product_doc in tqdm(db.collection('product').get()):
         product_dict = product_doc.to_dict()
 
@@ -29,10 +28,6 @@ def main(args):
         product_path = os.path.join(args.save_path, product_id)
         os.makedirs(product_path, exist_ok=True)
 
-        if 'rootProposalID' in product_dict:
-            root_proposal_id = product_dict['rootProposalID']
-            product_id = product_dict['id']
-            keymap_rpid_to_pi[root_proposal_id] = product_id
 
     nonexistent_mission_capture = []
     proposal_capture = []
@@ -44,6 +39,8 @@ def main(args):
         capture_dict = capture_doc.to_dict()
 
         capture_id = capture_doc.id
+
+        #print(json.dumps(capture_dict, indent=4, sort_keys=True, default=str))
 
         if capture_dict['isProposal']:
             proposal_capture.append(capture_doc.id)
@@ -76,29 +73,6 @@ def main(args):
 
 
         response = requests.get(image_url)
-
-        capture_idx += 1
-        idx_str = str(capture_idx).zfill(10)
-        filename = f'{idx_str}.jpg'
-
-        product_path = os.path.join(args.save_path, product_id, filename)
-        with open(product_path, 'wb') as f:
-            f.write(response.content)
-
-
-    for capture_doc in tqdm(db.collection('capture').get()):
-        capture_dict = capture_doc.to_dict()
-
-        root_proposal_id = capture_dict['ancestorsData']['rootProposalID']
-
-        if root_proposal_id not in keymap_rpid_to_pi:
-            continue
-
-        product_id = keymap_rpid_to_pi[root_proposal_id]
-
-        front_package_image_url = capture_dict['images']['frontPackagePath']
-
-        response = requests.get(front_package_image_url)
 
         capture_idx += 1
         idx_str = str(capture_idx).zfill(10)
