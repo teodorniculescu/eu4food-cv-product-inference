@@ -129,6 +129,11 @@ class CustomClassBalancedDataset(Dataset):
         for class_name in remove_classes:
             self.classes.remove(class_name)
 
+        if len(self.classes) == 0:
+            raise Exception('ERROR: No classes left in the dataloader')
+
+        print('classes', self.classes)
+
         train_image_paths, val_image_paths, test_image_paths = [], [], []
         train_labels, val_labels, test_labels = [], [], []
         for class_idx, class_name in enumerate(self.classes):
