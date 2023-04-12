@@ -13,8 +13,8 @@ batch_size=128
 learning_rate=0.1
 weight_decay=1e-2
 momentum=0.9
-device=cpu
-num_epochs=1
+device=cuda:0
+num_epochs=100
 num_workers=16
 
 source $ENV_NAME/bin/activate

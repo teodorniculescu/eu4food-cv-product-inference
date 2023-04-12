@@ -16,9 +16,13 @@ def main(args):
     # Get a reference to the Firestore database
     db = firestore.client()
 
+    product_doc_dict = {x.id: x for x in db.collection('product').get()}
+    capture_doc_dict = {x.id: x for x in db.collection('capture').get()}
+    mission_doc_dict = {x.id: x for x in db.collection('mission').get()}
+
     keymap_pi_to_pn = {}
     keymap_rpid_to_pi = {} 
-    for product_doc in tqdm(db.collection('product').get()):
+    for product_doc in tqdm(product_doc_dict.values()):
         product_dict = product_doc.to_dict()
 
         product_id = product_dict['id']
@@ -34,12 +38,17 @@ def main(args):
             product_id = product_dict['id']
             keymap_rpid_to_pi[root_proposal_id] = product_id
 
+    url_check = True
+    url_check_dict = {}
+    images_to_download = []
+
     nonexistent_mission_capture = []
     proposal_capture = []
     nocaptureid_mission_capture = []
     num_captures = -1
-    capture_idx = -1
-    for capture_doc in tqdm(db.collection('capture').get()):
+
+
+    for capture_doc in tqdm(capture_doc_dict.values()):
         num_captures += 1
         capture_dict = capture_doc.to_dict()
 
@@ -51,11 +60,11 @@ def main(args):
 
         mission_id = capture_dict['missionID']
 
-        mission_doc = db.collection('mission').document(mission_id).get()
-
-        if not mission_doc.exists:
+        if not mission_id in mission_doc_dict:
             nonexistent_mission_capture.append(capture_doc.id)
             continue
+
+        mission_doc = mission_doc_dict[mission_id]
         
         mission_dict = mission_doc.to_dict()
 
@@ -74,19 +83,15 @@ def main(args):
         if product_id not in keymap_pi_to_pn:
             print(product_id, 'not in keymap')
 
-
-        response = requests.get(image_url)
-
-        capture_idx += 1
-        idx_str = str(capture_idx).zfill(10)
-        filename = f'{idx_str}.jpg'
-
-        product_path = os.path.join(args.save_path, product_id, filename)
-        with open(product_path, 'wb') as f:
-            f.write(response.content)
+        if url_check:
+            if image_url in url_check_dict:
+                print(image_url, 'already exists')
+                continue
+            url_check_dict[image_url] = None
+            images_to_download.append((image_url, product_id))
 
 
-    for capture_doc in tqdm(db.collection('capture').get()):
+    for capture_doc in tqdm(capture_doc_dict.values()):
         capture_dict = capture_doc.to_dict()
 
         root_proposal_id = capture_dict['ancestorsData']['rootProposalID']
@@ -96,23 +101,39 @@ def main(args):
 
         product_id = keymap_rpid_to_pi[root_proposal_id]
 
-        front_package_image_url = capture_dict['images']['frontPackagePath']
+        image_url = capture_dict['images']['frontPackagePath']
 
-        response = requests.get(front_package_image_url)
+        if url_check:
+            if image_url in url_check_dict:
+                print(image_url, 'already exists')
+                continue
+            url_check_dict[image_url] = None
+            images_to_download.append((image_url, product_id))
 
+
+    print('save images')
+    capture_idx = -1
+    #for image_url, product_id in tqdm(images_to_download.items()):
+    for image_url, product_id in tqdm(images_to_download):
         capture_idx += 1
         idx_str = str(capture_idx).zfill(10)
         filename = f'{idx_str}.jpg'
-
         product_path = os.path.join(args.save_path, product_id, filename)
-        with open(product_path, 'wb') as f:
-            f.write(response.content)
+
+        response = requests.get(image_url)
+        if response.status_code == 200:
+            with open(product_path, 'wb') as f:
+                f.write(response.content)
+        else:
+            print('request to address', image_url, 'for class', product_id, 'was unsuccessful')
+
 
     if len(nonexistent_mission_capture) + len(proposal_capture) + len(nocaptureid_mission_capture) != 0:
         print(f'WARNING: {len(nonexistent_mission_capture) + len(proposal_capture) + len(nocaptureid_mission_capture)} / {num_captures} not saved')
         print(f'non existent missions are {len(nonexistent_mission_capture)}')
         print(f'proposals are {len(proposal_capture)}')
         print(f'mission without captureID {len(nocaptureid_mission_capture)}')
+
 
 
 def get_args():
