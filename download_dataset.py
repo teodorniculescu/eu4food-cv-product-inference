@@ -39,6 +39,7 @@ def main(args):
             keymap_rpid_to_pi[root_proposal_id] = product_id
 
     url_check = True
+    use_extra_captures = False
     url_check_dict = {}
     images_to_download = []
 
@@ -51,6 +52,12 @@ def main(args):
     for capture_doc in tqdm(capture_doc_dict.values()):
         num_captures += 1
         capture_dict = capture_doc.to_dict()
+
+        image_url_list = [capture_dict['images']['frontPackagePath']]
+
+        if use_extra_captures:
+            for image_url in capture_dict['images']['extra']:
+                image_url_list.append(image_url)
 
         capture_id = capture_doc.id
 
@@ -69,11 +76,11 @@ def main(args):
         mission_dict = mission_doc.to_dict()
 
         product_id = None
-        image_url = None
+        #image_url = None
         for item in mission_dict['items']:
             if item['captureID'] == capture_id:
                 product_id = item['productID']
-                image_url = item['itemImagePath']
+                #image_url = item['itemImagePath']
                 break
 
         if product_id is None:
@@ -84,11 +91,12 @@ def main(args):
             print(product_id, 'not in keymap')
 
         if url_check:
-            if image_url in url_check_dict:
-                print(image_url, 'already exists')
-                continue
-            url_check_dict[image_url] = None
-            images_to_download.append((image_url, product_id))
+            for image_url in image_url_list:
+                if image_url in url_check_dict:
+                    print(image_url, 'already exists')
+                    continue
+                url_check_dict[image_url] = None
+                images_to_download.append((image_url, product_id))
 
 
     for capture_doc in tqdm(capture_doc_dict.values()):
