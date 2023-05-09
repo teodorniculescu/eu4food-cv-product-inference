@@ -32,10 +32,10 @@ def get_args():
     parser.add_argument('--num_workers', type=int, default=0, help='Num workers for loading the dataset')
     parser.add_argument('--norm_mean', type=float, nargs=3, default=[0.485, 0.456, 0.406], help='Mean used for normalizing the images')
     parser.add_argument('--norm_std', type=float, nargs=3, default=[0.229, 0.224, 0.225], help='Std used for normalizing the images')
-    parser.add_argument('--ratio', type=float, nargs=3, default=[0.6, 0.2, 0.2], help='Train-Validation-Test data ratio')
+    parser.add_argument('--ratio', type=float, nargs=3, default=[0.5, 0.25, 0.25], help='Train-Validation-Test data ratio')
     parser.add_argument('--show_class_count', action='store_true')
     parser.add_argument('--balanced_dataset', action='store_true')
-    parser.add_argument('--augment', action='store_true')
+    parser.add_argument('--augment', type=str, default=None, choices=('RandAugment', 'AugMix'))
 
     # Parse the arguments and call the training function
     args = parser.parse_args()

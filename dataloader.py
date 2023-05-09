@@ -76,7 +76,7 @@ class CustomImagePathDataset(Dataset):
         return image, label
 
 class CustomClassBalancedDataset(Dataset):
-    def __init__(self, root_dir, image_size=(32, 32), mean=(0.5, 0.5, 0.5),  std=(0.5, 0.5, 0.5), train_ratio=0.7, val_ratio=0.15, test_ratio=0.15, augment=True):
+    def __init__(self, root_dir, image_size=(32, 32), mean=(0.5, 0.5, 0.5),  std=(0.5, 0.5, 0.5), train_ratio=0.7, val_ratio=0.15, test_ratio=0.15, augment=None):
         if train_ratio + val_ratio + test_ratio != 1.0:
             raise Exception("ERROR: Train, validation and test ratios must sum to 1.")
 
@@ -84,24 +84,34 @@ class CustomClassBalancedDataset(Dataset):
         self.mean = mean
         self.std = std
 
-        if augment:
-            cutout_size = int(image_size[0] * 0.01)
-            print('augment with cutout size of', cutout_size)
-            self.train_transform = transforms.Compose([
-                transforms.ToPILImage(),
-                transforms.RandomRotation(degrees=15),
-                transforms.RandomResizedCrop(image_size, (0.7, 1.0)),
-                transforms.ToTensor(),
-                transforms.Normalize(mean=mean, std=std)
-            ])
-
-        else:
+        if augment is None:
             self.train_transform = transforms.Compose([
                 transforms.ToPILImage(),
                 transforms.Resize(image_size),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=mean, std=std)
             ])
+
+        elif augment == 'RandAugment':
+            self.train_transform = transforms.Compose([
+                transforms.ToPILImage(),
+                transforms.RandAugment(),
+                transforms.Resize(image_size),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=mean, std=std)
+            ])
+
+        elif augment == 'AugMix':
+            self.train_transform = transforms.Compose([
+                transforms.ToPILImage(),
+                transforms.AugMix(),
+                transforms.Resize(image_size),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=mean, std=std)
+            ])
+
+        else:
+            raise Exception("ERROR: Unknown transform")
             
         self.transform = transforms.Compose([
             transforms.ToPILImage(),

@@ -38,7 +38,6 @@ def main(args):
             product_id = product_dict['id']
             keymap_rpid_to_pi[root_proposal_id] = product_id
 
-    url_check = True
     use_extra_captures = False
     url_check_dict = {}
     images_to_download = []
@@ -48,8 +47,8 @@ def main(args):
     nocaptureid_mission_capture = []
     num_captures = -1
 
-
     for capture_doc in tqdm(capture_doc_dict.values()):
+        capture_id = capture_doc.id
         num_captures += 1
         capture_dict = capture_doc.to_dict()
 
@@ -59,7 +58,6 @@ def main(args):
             for image_url in capture_dict['images']['extra']:
                 image_url_list.append(image_url)
 
-        capture_id = capture_doc.id
 
         if capture_dict['isProposal']:
             proposal_capture.append(capture_doc.id)
@@ -90,16 +88,16 @@ def main(args):
         if product_id not in keymap_pi_to_pn:
             print(product_id, 'not in keymap')
 
-        if url_check:
-            for image_url in image_url_list:
-                if image_url in url_check_dict:
-                    print(image_url, 'already exists')
-                    continue
-                url_check_dict[image_url] = None
-                images_to_download.append((image_url, product_id))
+        for image_url in image_url_list:
+            if image_url in url_check_dict:
+                print(image_url, 'already exists')
+                continue
+            url_check_dict[image_url] = None
+            images_to_download.append((image_url, product_id, capture_id))
 
 
     for capture_doc in tqdm(capture_doc_dict.values()):
+        capture_id = capture_doc.id
         capture_dict = capture_doc.to_dict()
 
         root_proposal_id = capture_dict['ancestorsData']['rootProposalID']
@@ -109,23 +107,27 @@ def main(args):
 
         product_id = keymap_rpid_to_pi[root_proposal_id]
 
-        image_url = capture_dict['images']['frontPackagePath']
+        image_url_list = [capture_dict['images']['frontPackagePath']]
 
-        if url_check:
+        if use_extra_captures:
+            for image_url in capture_dict['images']['extra']:
+                image_url_list.append(image_url)
+
+        for image_url in image_url_list:
             if image_url in url_check_dict:
                 print(image_url, 'already exists')
                 continue
             url_check_dict[image_url] = None
-            images_to_download.append((image_url, product_id))
+            images_to_download.append((image_url, product_id, capture_id))
 
 
     print('save images')
     capture_idx = -1
     #for image_url, product_id in tqdm(images_to_download.items()):
-    for image_url, product_id in tqdm(images_to_download):
+    for image_url, product_id, capture_id in tqdm(images_to_download):
         capture_idx += 1
         idx_str = str(capture_idx).zfill(10)
-        filename = f'{idx_str}.jpg'
+        filename = f'{idx_str}_{capture_id}.jpg'
         product_path = os.path.join(args.save_path, product_id, filename)
 
         response = requests.get(image_url)

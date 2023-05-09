@@ -5,17 +5,19 @@ save_path=train_results
 DATASET_BUCKET_NAME=gs://eu4food-dataset
 MODEL_BUCKET_NAME=gs://eu4food-public
 DATASET_PATH=dataset
+#DATASET_PATH=dataset_gcloud/100_products/
 ENV_NAME=eu4food_cv_product_inference_venv 
-DOWNLOAD_AND_DELETE=false
+DOWNLOAD_AND_DELETE=true
 
 model=resnet18
 batch_size=128
 learning_rate=0.1
-weight_decay=1e-2
+weight_decay=0.01
 momentum=0.9
 device=cuda:0
 num_epochs=100
 num_workers=16
+augment=AugMix
 
 source $ENV_NAME/bin/activate
 
@@ -35,6 +37,7 @@ else
 fi
 
 python3.8 train.py $model $DATASET_PATH \
+	--augment $augment \
 	--save_path $save_path \
 	--balanced_dataset \
 	--batch_size $batch_size \
