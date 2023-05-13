@@ -35,7 +35,9 @@ def get_args():
     parser.add_argument('--ratio', type=float, nargs=3, default=[0.5, 0.25, 0.25], help='Train-Validation-Test data ratio')
     parser.add_argument('--show_class_count', action='store_true')
     parser.add_argument('--balanced_dataset', action='store_true')
-    parser.add_argument('--augment', type=str, default=None, choices=('RandAugment', 'AugMix'))
+    augment_choices = ('RandAugment', 'AugMix', 'TrivialAugmentWide')
+    parser.add_argument('--augment_train', type=str, default=None, choices=augment_choices)
+    parser.add_argument('--augment_valid', type=str, default=None, choices=augment_choices)
 
     # Parse the arguments and call the training function
     args = parser.parse_args()
@@ -182,12 +184,9 @@ def main():
 
     os.makedirs(os.path.join(save_path))
 
-    if args.augment:
-        print('Augment training data')
-
     if args.balanced_dataset:
         print('Using class balanced dataset')
-        dataset = CustomClassBalancedDataset(args.data_dir, image_size=args.image_size, mean=args.norm_mean, std=args.norm_std, augment=args.augment, train_ratio=args.ratio[0], val_ratio=args.ratio[1], test_ratio=args.ratio[2])
+        dataset = CustomClassBalancedDataset(args.data_dir, image_size=args.image_size, mean=args.norm_mean, std=args.norm_std, train_ratio=args.ratio[0], val_ratio=args.ratio[1], test_ratio=args.ratio[2], augment_train=args.augment_train, augment_valid=args.augment_valid)
 
     else:
         if self.augment:

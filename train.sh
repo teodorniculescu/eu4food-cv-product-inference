@@ -7,7 +7,7 @@ MODEL_BUCKET_NAME=gs://eu4food-public
 DATASET_PATH=dataset
 #DATASET_PATH=dataset_gcloud/100_products/
 ENV_NAME=eu4food_cv_product_inference_venv 
-DOWNLOAD_AND_DELETE=true
+DOWNLOAD_AND_DELETE=false
 
 model=resnet18
 batch_size=128
@@ -15,15 +15,16 @@ learning_rate=0.1
 weight_decay=0.01
 momentum=0.9
 device=cuda:0
-num_epochs=100
+num_epochs=1
 num_workers=16
-augment=AugMix
+augment_train=AugMix
+augment_valid=$augment_train
 
 source $ENV_NAME/bin/activate
 
 if [ "$DOWNLOAD_AND_DELETE" = true ]; then
 	echo "Download dataset"
-	mkdir $DATASET_PATH
+	#mkdir $DATASET_PATH
 	#gsutil -m cp -r $DATASET_BUCKET_NAME/20_products/* $DATASET_PATH
 	python download_dataset.py $DATASET_PATH
 fi
@@ -37,7 +38,8 @@ else
 fi
 
 python3.8 train.py $model $DATASET_PATH \
-	--augment $augment \
+	--augment_train $augment_train \
+	--augment_valid $augment_valid \
 	--save_path $save_path \
 	--balanced_dataset \
 	--batch_size $batch_size \

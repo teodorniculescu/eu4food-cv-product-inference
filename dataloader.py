@@ -59,11 +59,40 @@ def get_loader_class_count(loader, num_classes):
             total_class_count[number] += count
     return total_class_count
 
+def get_transform(augment_type, image_size, mean, std):
+    if augment_type is None:
+        return transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.Resize(image_size),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=mean, std=std)
+        ])
+
+    elif augment_type == 'RandAugment':
+        return transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.RandAugment(),
+            transforms.Resize(image_size),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=mean, std=std)
+        ])
+
+    elif augment_type == 'AugMix':
+        return transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.AugMix(),
+            transforms.Resize(image_size),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=mean, std=std)
+        ])
+
+    raise Exception(f"ERROR: Unknown augment type {augment_type}")
+
 class CustomImagePathDataset(Dataset):
-    def __init__(self, image_paths, labels, transform):
+    def __init__(self, image_paths, labels, image_size, mean, std, augment_type=None):
         self.image_paths = image_paths
         self.labels = labels
-        self.transform = transform
+        self.transform = get_transform(augment_type, image_size, mean, std)
 
     def __len__(self):
         return len(self.image_paths)
@@ -76,49 +105,9 @@ class CustomImagePathDataset(Dataset):
         return image, label
 
 class CustomClassBalancedDataset(Dataset):
-    def __init__(self, root_dir, image_size=(32, 32), mean=(0.5, 0.5, 0.5),  std=(0.5, 0.5, 0.5), train_ratio=0.7, val_ratio=0.15, test_ratio=0.15, augment=None):
+    def __init__(self, root_dir, image_size=(32, 32), mean=(0.5, 0.5, 0.5),  std=(0.5, 0.5, 0.5), train_ratio=0.7, val_ratio=0.15, test_ratio=0.15, augment_train=None, augment_valid=None):
         if train_ratio + val_ratio + test_ratio != 1.0:
             raise Exception("ERROR: Train, validation and test ratios must sum to 1.")
-
-        self.image_size = image_size
-        self.mean = mean
-        self.std = std
-
-        if augment is None:
-            self.train_transform = transforms.Compose([
-                transforms.ToPILImage(),
-                transforms.Resize(image_size),
-                transforms.ToTensor(),
-                transforms.Normalize(mean=mean, std=std)
-            ])
-
-        elif augment == 'RandAugment':
-            self.train_transform = transforms.Compose([
-                transforms.ToPILImage(),
-                transforms.RandAugment(),
-                transforms.Resize(image_size),
-                transforms.ToTensor(),
-                transforms.Normalize(mean=mean, std=std)
-            ])
-
-        elif augment == 'AugMix':
-            self.train_transform = transforms.Compose([
-                transforms.ToPILImage(),
-                transforms.AugMix(),
-                transforms.Resize(image_size),
-                transforms.ToTensor(),
-                transforms.Normalize(mean=mean, std=std)
-            ])
-
-        else:
-            raise Exception("ERROR: Unknown transform")
-            
-        self.transform = transforms.Compose([
-            transforms.ToPILImage(),
-            transforms.Resize(image_size),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=mean, std=std)
-        ])
 
         self.classes = os.listdir(root_dir)
         self.classes.sort()
@@ -164,9 +153,9 @@ class CustomClassBalancedDataset(Dataset):
             val_labels += [class_idx] * val_size
             test_labels += [class_idx] * test_size
 
-        self.train_dataset = CustomImagePathDataset(train_image_paths, train_labels, self.train_transform)
-        self.val_dataset = CustomImagePathDataset(val_image_paths, val_labels, self.transform)
-        self.test_dataset = CustomImagePathDataset(test_image_paths, test_labels, self.transform)
+        self.train_dataset = CustomImagePathDataset(train_image_paths, train_labels, image_size, mean, std, augment_type=augment_train)
+        self.val_dataset = CustomImagePathDataset(val_image_paths, val_labels, image_size, mean, std, augment_type=augment_valid)
+        self.test_dataset = CustomImagePathDataset(test_image_paths, test_labels, image_size, mean, std)
 
     def __get_image_paths__(self, root_dir, extensions=('.jpg', '.png', '.jpeg'), shuffle=True):
         image_paths = []

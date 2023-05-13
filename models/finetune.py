@@ -46,10 +46,11 @@ AVAILABLE_MODELS = [
 
 
 class ModelFetcher:
-    def __init__(self, model_name, image_size, num_classes, device):
+    def __init__(self, model_name, image_size, num_classes, device, dropout_prob=0.2):
         self.model_name = model_name
         self.image_size = image_size
         self.num_classes = num_classes
+        self.dropout_prob = dropout_prob
         self.device = device
 
 
