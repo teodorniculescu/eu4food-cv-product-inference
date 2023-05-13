@@ -59,40 +59,50 @@ def get_loader_class_count(loader, num_classes):
             total_class_count[number] += count
     return total_class_count
 
-def get_transform(augment_type, image_size, mean, std):
+def get_transform(augment_type, image_size, mean, std, use_mean_std):
+    transforms_list = [
+        transforms.ToPILImage(),
+    ]
     if augment_type is None:
-        return transforms.Compose([
-            transforms.ToPILImage(),
-            transforms.Resize(image_size),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=mean, std=std)
-        ])
+        pass
 
     elif augment_type == 'RandAugment':
-        return transforms.Compose([
-            transforms.ToPILImage(),
+        transforms_list += [
             transforms.RandAugment(),
-            transforms.Resize(image_size),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=mean, std=std)
-        ])
+        ]
 
     elif augment_type == 'AugMix':
-        return transforms.Compose([
-            transforms.ToPILImage(),
+        transforms_list += [
             transforms.AugMix(),
-            transforms.Resize(image_size),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=mean, std=std)
-        ])
+        ]
 
-    raise Exception(f"ERROR: Unknown augment type {augment_type}")
+    elif augment_type == 'TrivialAugmentWide':
+        transforms_list += [
+            transforms.TrivialAugmentWide(),
+        ]
+
+    else:
+        raise Exception(f"ERROR: Unknown augment type {augment_type}")
+
+    transforms_list += [
+        transforms.Resize(image_size),
+        transforms.ToTensor(),
+    ]
+
+    if use_mean_std:
+        transforms_list += [
+            transforms.Normalize(mean=mean, std=std)
+        ]
+    
+    return transforms.Compose(transforms_list)
+
 
 class CustomImagePathDataset(Dataset):
-    def __init__(self, image_paths, labels, image_size, mean, std, augment_type=None):
+    def __init__(self, image_paths, labels, image_size, mean, std, use_mean_std, augment_type=None):
         self.image_paths = image_paths
         self.labels = labels
-        self.transform = get_transform(augment_type, image_size, mean, std)
+        self.use_mean_std = use_mean_std
+        self.transform = get_transform(augment_type, image_size, mean, std, use_mean_std)
 
     def __len__(self):
         return len(self.image_paths)
@@ -102,10 +112,14 @@ class CustomImagePathDataset(Dataset):
         label = self.labels[idx]
         image = cv2.imread(image_path)
         image = self.transform(image)
+
+        if not self.use_mean_std:
+            image *= 255
+
         return image, label
 
 class CustomClassBalancedDataset(Dataset):
-    def __init__(self, root_dir, image_size=(32, 32), mean=(0.5, 0.5, 0.5),  std=(0.5, 0.5, 0.5), train_ratio=0.7, val_ratio=0.15, test_ratio=0.15, augment_train=None, augment_valid=None):
+    def __init__(self, root_dir, image_size=(32, 32), mean=(0.5, 0.5, 0.5),  std=(0.5, 0.5, 0.5), use_mean_std=False, train_ratio=0.7, val_ratio=0.15, test_ratio=0.15, augment_train=None, augment_valid=None):
         if train_ratio + val_ratio + test_ratio != 1.0:
             raise Exception("ERROR: Train, validation and test ratios must sum to 1.")
 
@@ -153,9 +167,9 @@ class CustomClassBalancedDataset(Dataset):
             val_labels += [class_idx] * val_size
             test_labels += [class_idx] * test_size
 
-        self.train_dataset = CustomImagePathDataset(train_image_paths, train_labels, image_size, mean, std, augment_type=augment_train)
-        self.val_dataset = CustomImagePathDataset(val_image_paths, val_labels, image_size, mean, std, augment_type=augment_valid)
-        self.test_dataset = CustomImagePathDataset(test_image_paths, test_labels, image_size, mean, std)
+        self.train_dataset = CustomImagePathDataset(train_image_paths, train_labels, image_size, mean, std, use_mean_std, augment_type=augment_train)
+        self.val_dataset = CustomImagePathDataset(val_image_paths, val_labels, image_size, mean, std, use_mean_std, augment_type=augment_valid)
+        self.test_dataset = CustomImagePathDataset(test_image_paths, test_labels, image_size, mean, std, use_mean_std)
 
     def __get_image_paths__(self, root_dir, extensions=('.jpg', '.png', '.jpeg'), shuffle=True):
         image_paths = []

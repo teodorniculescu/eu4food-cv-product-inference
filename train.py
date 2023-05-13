@@ -30,11 +30,12 @@ def get_args():
     parser.add_argument('--batch_size', type=int, default=32, help='Batch size to use for training')
     parser.add_argument('--device', type=str, default='cpu', help='Device to use for training (cpu or cuda)')
     parser.add_argument('--num_workers', type=int, default=0, help='Num workers for loading the dataset')
+
+    parser.add_argument('--use_mean_std', action='store_true')
     parser.add_argument('--norm_mean', type=float, nargs=3, default=[0.485, 0.456, 0.406], help='Mean used for normalizing the images')
     parser.add_argument('--norm_std', type=float, nargs=3, default=[0.229, 0.224, 0.225], help='Std used for normalizing the images')
     parser.add_argument('--ratio', type=float, nargs=3, default=[0.5, 0.25, 0.25], help='Train-Validation-Test data ratio')
     parser.add_argument('--show_class_count', action='store_true')
-    parser.add_argument('--balanced_dataset', action='store_true')
     augment_choices = ('RandAugment', 'AugMix', 'TrivialAugmentWide')
     parser.add_argument('--augment_train', type=str, default=None, choices=augment_choices)
     parser.add_argument('--augment_valid', type=str, default=None, choices=augment_choices)
@@ -184,15 +185,13 @@ def main():
 
     os.makedirs(os.path.join(save_path))
 
-    if args.balanced_dataset:
-        print('Using class balanced dataset')
-        dataset = CustomClassBalancedDataset(args.data_dir, image_size=args.image_size, mean=args.norm_mean, std=args.norm_std, train_ratio=args.ratio[0], val_ratio=args.ratio[1], test_ratio=args.ratio[2], augment_train=args.augment_train, augment_valid=args.augment_valid)
-
-    else:
-        if self.augment:
-            print('WARNING: Augment not implemented for CustomDataset. No image will be augmented.')
-
-        dataset = CustomDataset(args.data_dir, image_size=args.image_size, mean=args.norm_mean, std=args.norm_std)
+    dataset = CustomClassBalancedDataset(
+            args.data_dir, 
+            image_size=args.image_size,
+            mean=args.norm_mean, std=args.norm_std, use_mean_std=args.use_mean_std,
+            train_ratio=args.ratio[0], val_ratio=args.ratio[1], test_ratio=args.ratio[2],
+            augment_train=args.augment_train, augment_valid=args.augment_valid
+    )
 
     train_loader, val_loader, test_loader = dataset.get_loaders(args.batch_size, args.num_workers)
     num_classes = dataset.num_classes()

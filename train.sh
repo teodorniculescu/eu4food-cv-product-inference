@@ -41,7 +41,6 @@ python3.8 train.py $model $DATASET_PATH \
 	--augment_train $augment_train \
 	--augment_valid $augment_valid \
 	--save_path $save_path \
-	--balanced_dataset \
 	--batch_size $batch_size \
 	--learning_rate $learning_rate \
 	--weight_decay $weight_decay \
