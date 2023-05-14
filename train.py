@@ -247,6 +247,10 @@ def main():
         mean = np.mean(l)
         std = np.std(l)
         args.elapsed_time['dataset'][ds.name] = {'mean': mean, 'std': std}
+    args.elapsed_time['dataset']['train_val'] = train_val_elapsed_time
+    args.elapsed_time['dataset']['test'] = test_elapsed_time
+
+    args.dataset_image_count = {'used': dataset.split_image_count, 'excluded': dataset.excluded_split_image_count}
 
 
     plot_save_path = os.path.join(save_path, 'train_plot.png')
@@ -255,11 +259,6 @@ def main():
     scores_save_path = os.path.join(save_path, 'scores.json')
     with open(scores_save_path, 'w') as f:
         json.dump(scores, f, indent=4)
-
-    elapsed_time_save_path = os.path.join(save_path, 'elapsed_time.json')
-    with open(elapsed_time_save_path, 'w') as f:
-        elapsed_time = { 'train_val': train_val_elapsed_time, 'test': test_elapsed_time, }
-        json.dump(elapsed_time, f, indent=4)
 
     args_save_path = os.path.join(save_path, 'args.json')
     with open(args_save_path, 'w') as f:

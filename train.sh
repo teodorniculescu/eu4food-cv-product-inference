@@ -4,21 +4,36 @@ save_path=train_results
 
 DATASET_BUCKET_NAME=gs://eu4food-dataset
 MODEL_BUCKET_NAME=gs://eu4food-public
-DATASET_PATH=dataset
+#DATASET_PATH=dataset/
+DATASET_PATH=dataset_gcloud/20_products/
 #DATASET_PATH=dataset_gcloud/100_products/
 ENV_NAME=eu4food_cv_product_inference_venv 
 DOWNLOAD_AND_DELETE=false
 
 model=resnet18
-batch_size=128
+batch_size=64
 learning_rate=0.1
 weight_decay=0.01
 momentum=0.9
 device=cuda:0
-num_epochs=2
+num_epochs=100
 num_workers=0
-augment_train=RandAugment
+augment_train=None
 augment_valid=$augment_train
+preload_images=yes
+use_mean_std=no
+
+if [ "$use_mean_std" = "yes" ]; then
+    use_mean_std="--use_mean_std"
+else
+    use_mean_std=""
+fi
+
+if [ "$preload_images" = "yes" ]; then
+    preload_images="--preload_images"
+else
+    preload_images=""
+fi
 
 source $ENV_NAME/bin/activate
 
@@ -38,7 +53,8 @@ else
 fi
 
 python3.8 train.py $model $DATASET_PATH \
-	--preload_images \
+	$use_mean_std \
+	$preload_images \
 	--augment_train $augment_train \
 	--augment_valid $augment_valid \
 	--save_path $save_path \
@@ -87,27 +103,49 @@ if [ $? -eq 1 ]; then
 	upload=0
 
 else
-	echo "Compare current train performance with uploaded model performance"
+	echo "Compare current class names with uploaded class names"
 
-	gsutil -m cp -r $MODEL_BUCKET_NAME/best_model/scores.json uploaded_model_scores.json
+	gsutil -m cp -r $MODEL_BUCKET_NAME/best_model/obj.names uploaded_obj.names
 
 	if [ $? -eq 0 ]; then
-		echo "Copied scores"
+		echo "Copied obj.names"
 	else
-		echo "ERROR: Could not copy scores"
+		echo "ERROR: Could not obj.names"
 		exit 1
 	fi
 
-	uploaded_f1=$(cat uploaded_model_scores.json | jq -r '.test.f1')
-	local_f1=$(cat $most_recent_train/scores.json | jq -r '.test.f1')
+	sort uploaded_obj.names > sorted_uploaded_obj.names
+	sort $most_recent_train/obj.names > sorted_local_obj.names
 
-	if (( $(echo "$local_f1 > $uploaded_f1" | bc -l) )); then
-		echo "Local F1 is greater than uploaded F1"
-		upload=0
+	if diff sorted_uploaded_obj.names sorted_local_obj.names > /dev/null; then
+		echo "The local obj.names and the uploaded obj.names are the same"
+
+		echo "Compare current train performance with uploaded model performance"
+
+		gsutil -m cp -r $MODEL_BUCKET_NAME/best_model/scores.json uploaded_model_scores.json
+
+		if [ $? -eq 0 ]; then
+			echo "Copied scores"
+		else
+			echo "ERROR: Could not copy scores"
+			exit 1
+		fi
+
+		uploaded_f1=$(cat uploaded_model_scores.json | jq -r '.test.f1')
+		local_f1=$(cat $most_recent_train/scores.json | jq -r '.test.f1')
+
+		if (( $(echo "$local_f1 > $uploaded_f1" | bc -l) )); then
+			echo "Local F1 is greater than uploaded F1"
+			upload=0
+		else
+			echo "Local F1 is not greater than uploaded F1. No need to upload files."
+			upload=1
+		fi
 	else
-		echo "Local F1 is not greater than uploaded F1. No need to upload files."
-		upload=1
+		echo "The obj.names are different"
+		upload=0
 	fi
+
 
 fi
 

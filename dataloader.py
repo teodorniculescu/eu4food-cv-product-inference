@@ -155,6 +155,8 @@ class CustomClassBalancedDataset(Dataset):
         self.classes.sort()
 
         self.excluded_classes = []
+        self.split_image_count = {}
+        self.excluded_split_image_count = {}
         for class_name in self.classes:
             image_paths = self.__get_image_paths__(os.path.join(root_dir, class_name))
 
@@ -166,6 +168,20 @@ class CustomClassBalancedDataset(Dataset):
             if test_size == 0 or val_size == 0 or train_size == 0:
                 print(f'WARNING: Class {class_name} will not be used due to not enough images in acording to current split. Class has {data_size} images in total split as {train_size} {val_size} {test_size}')
                 self.excluded_classes.append(class_name)
+                self.excluded_split_image_count[class_name] = {
+                        'total': data_size,
+                        'train': train_size,
+                        'val': val_size,
+                        'test': test_size,
+                        }
+
+            else:
+                self.split_image_count[class_name] = {
+                        'total': data_size,
+                        'train': train_size,
+                        'val': val_size,
+                        'test': test_size,
+                        }
 
         for class_name in self.excluded_classes:
             self.classes.remove(class_name)
