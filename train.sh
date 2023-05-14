@@ -15,9 +15,9 @@ learning_rate=0.1
 weight_decay=0.01
 momentum=0.9
 device=cuda:0
-num_epochs=1
-num_workers=16
-augment_train=AugMix
+num_epochs=2
+num_workers=0
+augment_train=RandAugment
 augment_valid=$augment_train
 
 source $ENV_NAME/bin/activate
@@ -38,6 +38,7 @@ else
 fi
 
 python3.8 train.py $model $DATASET_PATH \
+	--preload_images \
 	--augment_train $augment_train \
 	--augment_valid $augment_valid \
 	--save_path $save_path \

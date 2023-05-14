@@ -13,6 +13,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import os
 import time
+import numpy as np
 
 
 def get_args():
@@ -36,9 +37,13 @@ def get_args():
     parser.add_argument('--norm_std', type=float, nargs=3, default=[0.229, 0.224, 0.225], help='Std used for normalizing the images')
     parser.add_argument('--ratio', type=float, nargs=3, default=[0.5, 0.25, 0.25], help='Train-Validation-Test data ratio')
     parser.add_argument('--show_class_count', action='store_true')
-    augment_choices = ('RandAugment', 'AugMix', 'TrivialAugmentWide')
-    parser.add_argument('--augment_train', type=str, default=None, choices=augment_choices)
-    parser.add_argument('--augment_valid', type=str, default=None, choices=augment_choices)
+    augment_choices = ('None', 'RandAugment', 'AugMix', 'TrivialAugmentWide', 'Custom')
+    parser.add_argument('--augment_train', type=str, default='None', choices=augment_choices)
+    parser.add_argument('--augment_valid', type=str, default='None', choices=augment_choices)
+
+    parser.add_argument('--preload_images', action='store_true')
+    parser.add_argument('--dont_save_model', action='store_true')
+    
 
     # Parse the arguments and call the training function
     args = parser.parse_args()
@@ -56,6 +61,7 @@ def train_validate_model(model, train_loader, val_loader, optimizer, criterion, 
 
     for epoch in range(num_epochs):
         for phase in ['train', 'val']:
+            epoch_start_time = time.time()
             if phase == 'train':
                 model.train()
                 loader = train_loader
@@ -67,7 +73,7 @@ def train_validate_model(model, train_loader, val_loader, optimizer, criterion, 
             f1 = []
             acc = []
 
-            for images, labels in tqdm(loader, desc=f"{phase.capitalize()} Epoch {epoch+1}/{num_epochs}"):
+            for images, labels in tqdm(loader, desc=f"{phase.capitalize()} Epoch {epoch+1}/{num_epochs}", leave=False):
                 images, labels = images.to(device), labels.to(device)
 
                 optimizer.zero_grad()
@@ -89,13 +95,19 @@ def train_validate_model(model, train_loader, val_loader, optimizer, criterion, 
             epoch_f1 = sum(f1) / len(f1)
             epoch_acc = sum(acc) / len(acc)
 
-            scores[phase].append({'epoch': epoch, 'loss': epoch_loss, 'f1': epoch_f1, 'accuracy': epoch_acc})
-            print(phase, scores[phase][-1])
+            epoch_loss = round(epoch_loss, 4)
+            epoch_f1 = round(epoch_f1, 4)
+            epoch_acc = round(epoch_acc, 4)
+            elapsed_time = round(time.time() - epoch_start_time, 4)
+
+            scores[phase].append({'epoch': epoch, 'loss': epoch_loss, 'f1': epoch_f1, 'accuracy': epoch_acc, 'time': elapsed_time})
 
             if phase == 'val' and epoch_f1 > best_f1:
                 best_f1 = epoch_f1
                 torch.save(model.state_dict(), model_save_path)
                 print('saved model')
+                
+        print('train', scores['train'][-1], 'val', scores['val'][-1], )
 
     return scores
 
@@ -187,6 +199,7 @@ def main():
 
     dataset = CustomClassBalancedDataset(
             args.data_dir, 
+            preload_images=args.preload_images,
             image_size=args.image_size,
             mean=args.norm_mean, std=args.norm_std, use_mean_std=args.use_mean_std,
             train_ratio=args.ratio[0], val_ratio=args.ratio[1], test_ratio=args.ratio[2],
@@ -221,7 +234,20 @@ def main():
     test_scores = test_model(model, model_save_path, test_loader, criterion, torch_device, conf_matrix_save_path, classes)
     test_elapsed_time = time.time() - start_time
 
+    if args.dont_save_model:
+        if os.path.exists(model_save_path):
+            os.remove(model_save_path)
+
     scores['test'] = test_scores
+
+    args.elapsed_time = {}
+    args.elapsed_time['dataset'] = {}
+    for ds in [dataset.train_dataset, dataset.val_dataset, dataset.test_dataset]:
+        l = np.array(ds.elapsed_time_list)
+        mean = np.mean(l)
+        std = np.std(l)
+        args.elapsed_time['dataset'][ds.name] = {'mean': mean, 'std': std}
+
 
     plot_save_path = os.path.join(save_path, 'train_plot.png')
     draw_plot(scores, plot_save_path)
@@ -242,6 +268,11 @@ def main():
     obj_names_path = os.path.join(save_path, 'obj.names')
     with open(obj_names_path, 'w') as f:
         for class_name in classes:
+            f.write(class_name + '\n')
+
+    excluded_obj_names_path = os.path.join(save_path, 'excluded.obj.names')
+    with open(excluded_obj_names_path, 'w') as f:
+        for class_name in dataset.excluded_classes:
             f.write(class_name + '\n')
 
 if __name__ == '__main__':

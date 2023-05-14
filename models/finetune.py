@@ -46,11 +46,10 @@ AVAILABLE_MODELS = [
 
 
 class ModelFetcher:
-    def __init__(self, model_name, image_size, num_classes, device, dropout_prob=0.2):
+    def __init__(self, model_name, image_size, num_classes, device):
         self.model_name = model_name
         self.image_size = image_size
         self.num_classes = num_classes
-        self.dropout_prob = dropout_prob
         self.device = device
 
 
@@ -61,6 +60,7 @@ class ModelFetcher:
             self.model = TestModel(self.image_size, self.num_classes)
         else:
             self.model = torch.hub.load('pytorch/vision:v0.11.3', self.model_name, pretrained=True)
+
         if self.model_name == 'testmodel':
             optimization_param = self.model.parameters()
 
@@ -81,10 +81,13 @@ class ModelFetcher:
             for param in self.model.parameters():
                 param.requires_grad = False
             in_features = self.model.fc.in_features
-            self.model.fc = torch.nn.Sequential(
-                torch.nn.Linear(in_features, self.num_classes),
-                torch.nn.Softmax(dim=1)
-                )
+
+            module_list = [
+                    torch.nn.Linear(in_features, self.num_classes),
+                    torch.nn.Softmax(dim=1)
+                    ]
+
+            self.model.fc = torch.nn.Sequential(*module_list)
 
             optimization_param = self.model.fc.parameters()
 

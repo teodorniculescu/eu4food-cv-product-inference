@@ -1,4 +1,5 @@
 from torchvision.datasets import ImageFolder
+import time
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader, Dataset, random_split
 from tqdm import tqdm
@@ -63,8 +64,13 @@ def get_transform(augment_type, image_size, mean, std, use_mean_std):
     transforms_list = [
         transforms.ToPILImage(),
     ]
-    if augment_type is None:
+    if augment_type is None or augment_type == 'None':
         pass
+
+    elif augment_type == 'Custom':
+        transforms_list += [
+            transforms.RandomAffine(degrees=(-10, 10), translate=(0.1, 0.1), scale=(0.7, 2)),
+        ]
 
     elif augment_type == 'RandAugment':
         transforms_list += [
@@ -93,40 +99,62 @@ def get_transform(augment_type, image_size, mean, std, use_mean_std):
         transforms_list += [
             transforms.Normalize(mean=mean, std=std)
         ]
+
+    else:
+        transforms_list += [
+            transforms.Lambda(lambda x: x * 255),
+        ]
     
     return transforms.Compose(transforms_list)
 
 
 class CustomImagePathDataset(Dataset):
-    def __init__(self, image_paths, labels, image_size, mean, std, use_mean_std, augment_type=None):
+    def __init__(self, name, image_paths, images, preload_images, labels, image_size, mean, std, use_mean_std, augment_type=None):
+        self.name = name
         self.image_paths = image_paths
+        self.images = images
+        self.preload_images = preload_images
         self.labels = labels
         self.use_mean_std = use_mean_std
         self.transform = get_transform(augment_type, image_size, mean, std, use_mean_std)
+        self.elapsed_time_list = []
 
     def __len__(self):
         return len(self.image_paths)
 
     def __getitem__(self, idx):
-        image_path = self.image_paths[idx]
+        start_time = time.time()
         label = self.labels[idx]
-        image = cv2.imread(image_path)
+        if self.preload_images:
+            #st = time.time()
+            image = self.images[idx]
+            #et_get = time.time() - st
+
+        else:
+            image_path = self.image_paths[idx]
+            image = cv2.imread(image_path)
+
+        #st = time.time()
         image = self.transform(image)
+        #et_tr = time.time() - st
 
-        if not self.use_mean_std:
-            image *= 255
-
+        elapsed_time = time.time() - start_time
+        #print(elapsed_time,
+                #'get', round(et_get/elapsed_time, 3),
+                #'tr', round(et_tr/elapsed_time, 3),
+                #)
+        self.elapsed_time_list.append(elapsed_time)
         return image, label
 
 class CustomClassBalancedDataset(Dataset):
-    def __init__(self, root_dir, image_size=(32, 32), mean=(0.5, 0.5, 0.5),  std=(0.5, 0.5, 0.5), use_mean_std=False, train_ratio=0.7, val_ratio=0.15, test_ratio=0.15, augment_train=None, augment_valid=None):
+    def __init__(self, root_dir, preload_images=False, image_size=(32, 32), mean=(0.5, 0.5, 0.5),  std=(0.5, 0.5, 0.5), use_mean_std=False, train_ratio=0.7, val_ratio=0.15, test_ratio=0.15, augment_train=None, augment_valid=None):
         if train_ratio + val_ratio + test_ratio != 1.0:
             raise Exception("ERROR: Train, validation and test ratios must sum to 1.")
 
         self.classes = os.listdir(root_dir)
         self.classes.sort()
 
-        remove_classes = []
+        self.excluded_classes = []
         for class_name in self.classes:
             image_paths = self.__get_image_paths__(os.path.join(root_dir, class_name))
 
@@ -137,9 +165,9 @@ class CustomClassBalancedDataset(Dataset):
 
             if test_size == 0 or val_size == 0 or train_size == 0:
                 print(f'WARNING: Class {class_name} will not be used due to not enough images in acording to current split. Class has {data_size} images in total split as {train_size} {val_size} {test_size}')
-                remove_classes.append(class_name)
+                self.excluded_classes.append(class_name)
 
-        for class_name in remove_classes:
+        for class_name in self.excluded_classes:
             self.classes.remove(class_name)
 
         if len(self.classes) == 0:
@@ -167,9 +195,25 @@ class CustomClassBalancedDataset(Dataset):
             val_labels += [class_idx] * val_size
             test_labels += [class_idx] * test_size
 
-        self.train_dataset = CustomImagePathDataset(train_image_paths, train_labels, image_size, mean, std, use_mean_std, augment_type=augment_train)
-        self.val_dataset = CustomImagePathDataset(val_image_paths, val_labels, image_size, mean, std, use_mean_std, augment_type=augment_valid)
-        self.test_dataset = CustomImagePathDataset(test_image_paths, test_labels, image_size, mean, std, use_mean_std)
+        if preload_images:
+            train_images = self.load_images_from_path(train_image_paths)
+            val_images = self.load_images_from_path(val_image_paths)
+            test_images = self.load_images_from_path(test_image_paths)
+
+        else:
+            train_images, val_images, test_images = None, None, None
+
+        self.train_dataset = CustomImagePathDataset('train', train_image_paths, train_images, preload_images, train_labels, image_size, mean, std, use_mean_std, augment_type=augment_train)
+        self.val_dataset = CustomImagePathDataset('val', val_image_paths, val_images, preload_images, val_labels, image_size, mean, std, use_mean_std, augment_type=augment_valid)
+        self.test_dataset = CustomImagePathDataset('test', test_image_paths, test_images, preload_images, test_labels, image_size, mean, std, use_mean_std)
+
+    def load_images_from_path(self, image_paths):
+        images = []
+        for image_path in tqdm(image_paths):
+            image = cv2.imread(image_path)
+            images.append(image)
+
+        return images
 
     def __get_image_paths__(self, root_dir, extensions=('.jpg', '.png', '.jpeg'), shuffle=True):
         image_paths = []
