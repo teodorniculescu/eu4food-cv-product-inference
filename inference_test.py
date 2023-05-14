@@ -139,7 +139,7 @@ def predict(image, device='cpu'):
 
     # get model
     best_model_url = 'https://storage.googleapis.com/eu4food-public/best_model/best_model.pth'
-    best_model_filepath = os.path.join(tmpdir, 'obj.names')
+    best_model_filepath = os.path.join(tmpdir, 'best_model.pth')
     urllib.request.urlretrieve(best_model_url, best_model_filepath)
     model = get_model(args_data['model'], num_classes)
     model.load_state_dict(torch.load(best_model_filepath))
