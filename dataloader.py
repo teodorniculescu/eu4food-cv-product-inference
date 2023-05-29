@@ -165,7 +165,7 @@ class CustomClassBalancedDataset(Dataset):
             val_size = int(val_ratio * data_size)
             test_size = data_size - train_size - val_size
 
-            if test_size == 0 or val_size == 0 or train_size == 0:
+            if data_size < 25 or test_size == 0 or val_size == 0 or train_size == 0:
                 print(f'WARNING: Class {class_name} will not be used due to not enough images in acording to current split. Class has {data_size} images in total split as {train_size} {val_size} {test_size}')
                 self.excluded_classes.append(class_name)
                 self.excluded_split_image_count[class_name] = {

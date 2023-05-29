@@ -162,7 +162,8 @@ def identifyProduct(request):
     return {"data": {"productId": class_name}}
 
 
-filepath = 'dataset_gcloud/20_products/C01_Alpro_Soya/RO/IMG_4012.JPEG'
+#filepath = 'dataset_gcloud/20_products/C01_Alpro_Soya/RO/IMG_4012.JPEG'
+filepath = 'test_image_29May2023.jpeg'
 image = cv2.imread(filepath)
 class_name = predict(image)
 print(class_name)
