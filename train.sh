@@ -150,7 +150,7 @@ else
 fi
 
 if [ $upload -eq 0 ]; then
-	gsutil -m cp -r $most_recent_train $MODEL_BUCKET_NAME/best_model
+	gsutil -m cp -r $most_recent_train/* $MODEL_BUCKET_NAME/best_model
 	if [ $? -eq 0 ]; then
 		echo "Successfuly uploaded new model"
 	else
